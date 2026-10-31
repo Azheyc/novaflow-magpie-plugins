@@ -15,10 +15,10 @@ Requires Magpie **0.1.2058 or newer** and a [NovaFlow account](https://www.ycnov
 Add the GitHub repository in Magpie's plugin page, or run:
 
 ```sh
-magpie plugin add github:335234131/novaflow-magpie-plugins
+magpie plugin add github:Azheyc/novaflow-magpie-plugins
 ```
 
-Alternatively, download a production archive from [Releases](https://github.com/335234131/novaflow-magpie-plugins/releases), extract it, and select the extracted directory in Magpie. Do not add the `.tgz` file directly as a plugin directory.
+Alternatively, download a production archive from [Releases](https://github.com/Azheyc/novaflow-magpie-plugins/releases), extract it, and select the extracted directory in Magpie. Do not add the `.tgz` file directly as a plugin directory.
 
 Installation adds a **NovaFlow** provider and sidebar entry. Avoid enabling multiple NovaFlow copies together.
 
@@ -82,7 +82,7 @@ Magpie stores sign-in credentials, and private plugin state stays under Magpie's
 ## Support and license
 
 - [NovaFlow](https://www.ycnovaflow.vip)
-- [Issues](https://github.com/335234131/novaflow-magpie-plugins/issues)
+- [Issues](https://github.com/Azheyc/novaflow-magpie-plugins/issues)
 - [中文](README.md)
 
 This is a third-party community plugin, not an official Magpie endorsement. It derives from `sub2api-magpie-plugin` under the MIT License. Attribution and bundled Magpie style licenses are retained in [LICENSE](LICENSE), [NOTICE](NOTICE) and [docs/MAGPIE-LICENSE](docs/MAGPIE-LICENSE).

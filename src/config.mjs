@@ -1,5 +1,5 @@
 export const PLUGIN_ID = "novaflow"
-export const PLUGIN_VERSION = "1.5.10"
+export const PLUGIN_VERSION = "1.5.11"
 export const PRODUCTION_ORIGIN = "https://www.ycnovaflow.vip"
 export const SERVICE_HOST = "127.0.0.1"
 export const SERVICE_PORT = 3488

@@ -15,10 +15,10 @@
 在 Magpie 的插件页面添加 GitHub 仓库，或在终端运行：
 
 ```sh
-magpie plugin add github:335234131/novaflow-magpie-plugins
+magpie plugin add github:Azheyc/novaflow-magpie-plugins
 ```
 
-也可以从 [Releases](https://github.com/335234131/novaflow-magpie-plugins/releases) 下载生产包，解压后在 Magpie 中选择该目录安装。不要直接把 `.tgz` 文件作为插件目录添加。
+也可以从 [Releases](https://github.com/Azheyc/novaflow-magpie-plugins/releases) 下载生产包，解压后在 Magpie 中选择该目录安装。不要直接把 `.tgz` 文件作为插件目录添加。
 
 插件安装后会添加 **NovaFlow** 供应商和侧栏入口。请避免同时启用多个 NovaFlow 插件副本。
 
@@ -82,7 +82,7 @@ magpie plugin add github:335234131/novaflow-magpie-plugins
 ## 支持与许可
 
 - [NovaFlow 官网](https://www.ycnovaflow.vip)
-- [问题反馈](https://github.com/335234131/novaflow-magpie-plugins/issues)
+- [问题反馈](https://github.com/Azheyc/novaflow-magpie-plugins/issues)
 - [English](README.en.md)
 
 本项目为第三方社区插件，不代表 Magpie 官方背书。基于 `sub2api-magpie-plugin` 开发，使用 MIT 许可证。原作者及 Magpie 样式代码的许可声明见 [LICENSE](LICENSE)、[NOTICE](NOTICE) 和 [docs/MAGPIE-LICENSE](docs/MAGPIE-LICENSE)。

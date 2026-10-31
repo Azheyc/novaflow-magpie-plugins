@@ -1,6 +1,6 @@
 {
   "name": "novaflow-magpie-plugins",
-  "version": "1.5.10",
+  "version": "1.5.11",
   "description": "NovaFlow provider, synchronization and Library integration for Magpie",
   "type": "module",
   "main": "./index.mjs",
@@ -59,11 +59,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/335234131/novaflow-magpie-plugins.git"
+    "url": "git+https://github.com/Azheyc/novaflow-magpie-plugins.git"
   },
   "homepage": "https://www.ycnovaflow.vip",
   "bugs": {
-    "url": "https://github.com/335234131/novaflow-magpie-plugins/issues"
+    "url": "https://github.com/Azheyc/novaflow-magpie-plugins/issues"
   },
   "author": "NovaFlow"
 }
