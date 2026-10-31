@@ -1,6 +1,6 @@
 {
   "name": "novaflow-magpie-plugins",
-  "version": "1.5.12",
+  "version": "1.5.13",
   "description": "NovaFlow provider, synchronization and Library integration for Magpie",
   "type": "module",
   "main": "./index.mjs",

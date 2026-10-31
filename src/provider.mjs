@@ -200,6 +200,8 @@ export function createNovaFlowProvider({
   assertSupportedHost(hostVersion)
   let catalog = null
   let catalogAt = 0
+  let loginCatalog = null
+  let loginCatalogOwner = ""
   const nativeAuth = new NativeAccountAuth({ api })
 
   async function activate(getAuth) {
@@ -210,6 +212,73 @@ export function createNovaFlowProvider({
 
   async function completeAccess(access) {
     return session.withAccess((token) => Promise.resolve(token)) || access
+  }
+
+  async function discoverModels(auth) {
+    await session.activateAuth(auth)
+    try {
+      await credentials.load()
+    } catch (error) {
+      if (
+        error.status === 401
+        || error.status === 403
+        || error.code === "PLUGIN_COMPANY_INACTIVE"
+        || error.code === "PLUGIN_MEMBERSHIP_INACTIVE"
+        || error.code === "PLUGIN_SESSION_REVOKED"
+      ) {
+        session.revoke(error.message)
+      }
+      throw error
+    }
+    const output = Object.create(null)
+    const failures = []
+    const all = []
+    for (const row of accounts.rows.values()) {
+      const signal = AbortSignal.timeout(config.requestTimeoutMs)
+      try {
+        const models = await listKeyModels(config, row, signal, fetchImpl)
+        accounts.setCatalog(row, models)
+        all.push(...models.map((model) => ({ row, model })))
+      } catch (error) {
+        failures.push({ keyId: String(row.key_id), code: error.status ? `HTTP_${error.status}` : "MODEL_DISCOVERY_FAILED" })
+      }
+    }
+    if (!all.length && failures.length) throw new Error("No authorized NovaFlow key could list models")
+    accounts.rebuildRoutes({ imageRouteIds: all.filter(({ model }) => model.capabilities?.imageGeneration).map(({ row, model }) => routeId(row, model.upstream_model_id)) })
+    accounts.persist()
+    for (const { row, model } of all) {
+      const group = String(row.group_name || row.group_id || "")
+      const route = modelRoute(row, model, group)
+      const publicId = accounts.resolve(route.id)?.publicId
+      if (model.capabilities?.imageGeneration && !publicId) continue
+      if (publicId) {
+        route.id = publicId
+        route.api.id = publicId
+        if (model.capabilities?.imageGeneration) {
+          route.name = model.upstream_model_id + (group ? ` · ${group}` : "")
+        }
+      }
+      route.api.npm = model.capabilities?.imageGeneration ? CHAT : PROTOCOLS[modelProtocol(model)]
+      output[route.id] = route
+    }
+    catalog = { ids: new Set(Object.keys(output)), failures }
+    catalogAt = Date.now()
+    report("models.ready", { keyCount: accounts.rows.size, routeCount: Object.keys(output).length, failures: failures.length })
+    return output
+  }
+
+  function takeLoginCatalog() {
+    if (!loginCatalog) return null
+    const owner = session.ownership?.() ?? ""
+    if (owner !== loginCatalogOwner) {
+      loginCatalog = null
+      loginCatalogOwner = ""
+      return null
+    }
+    const output = structuredClone(loginCatalog)
+    loginCatalog = null
+    loginCatalogOwner = ""
+    return output
   }
 
   function accountFetch(auth) {
@@ -289,6 +358,18 @@ export function createNovaFlowProvider({
       try {
         const accepted = await session.acceptLogin(result)
         const bootstrap = accepted?.bootstrap ?? {}
+        try {
+          const discovered = await discoverModels(result)
+          if (Object.keys(discovered).length) {
+            loginCatalog = structuredClone(discovered)
+            loginCatalogOwner = session.ownership?.() ?? ""
+          }
+        } catch (error) {
+          report("models.automatic_login_failed", {
+            code: error?.code || "MODEL_DISCOVERY_FAILED",
+            status: error?.status || 0,
+          })
+        }
         const accountId = String(bootstrap.display_name || bootstrap.user_id || "NovaFlow")
         return {
           ...result,
@@ -352,59 +433,7 @@ export function createNovaFlowProvider({
       name: "NovaFlow",
       async models(provider, { auth } = {}) {
         await session.activateAuth(auth)
-        let loaded
-        try {
-          loaded = await credentials.load()
-        } catch (error) {
-          if (
-            error.status === 401
-            || error.status === 403
-            || error.code === "PLUGIN_COMPANY_INACTIVE"
-            || error.code === "PLUGIN_MEMBERSHIP_INACTIVE"
-            || error.code === "PLUGIN_SESSION_REVOKED"
-          ) {
-            session.revoke(error.message)
-          }
-          throw error
-        }
-        const output = Object.create(null)
-        const failures = []
-        const all = []
-        for (const row of accounts.rows.values()) {
-          const signal = AbortSignal.timeout(config.requestTimeoutMs)
-          try {
-            const models = await listKeyModels(config, row, signal, fetchImpl)
-            accounts.setCatalog(row, models)
-            all.push(...models.map((model) => ({ row, model })))
-          } catch (error) {
-            failures.push({ keyId: String(row.key_id), code: error.status ? `HTTP_${error.status}` : "MODEL_DISCOVERY_FAILED" })
-          }
-        }
-        if (!all.length && failures.length) throw new Error("No authorized NovaFlow key could list models")
-        accounts.rebuildRoutes({ imageRouteIds: all.filter(({ model }) => model.capabilities?.imageGeneration).map(({ row, model }) => routeId(row, model.upstream_model_id)) })
-        accounts.persist()
-        const nameCounts = new Map()
-        for (const { row, model } of all) {
-          const name = model.display_name || model.upstream_model_id
-          nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1)
-        }
-        for (const { row, model } of all) {
-          const display = model.display_name || model.upstream_model_id
-          const route = modelRoute(row, model, (nameCounts.get(display) ?? 0) > 1 ? String(row.group_name || row.group_id) : "")
-          const publicId = accounts.resolve(route.id)?.publicId
-          if (model.capabilities?.imageGeneration && !publicId) continue
-          if (publicId) {
-            route.id = publicId
-            route.api.id = publicId
-            if (model.capabilities?.imageGeneration) route.name = model.upstream_model_id
-          }
-          route.api.npm = model.capabilities?.imageGeneration ? CHAT : PROTOCOLS[modelProtocol(model)]
-          output[route.id] = route
-        }
-        catalog = { ids: new Set(Object.keys(output)), failures }
-        catalogAt = Date.now()
-        report("models.ready", { keyCount: accounts.rows.size, routeCount: Object.keys(output).length, failures: failures.length })
-        return output
+        return takeLoginCatalog() ?? discoverModels(auth)
       },
     },
     "chat.headers": async ({ model }, result) => {

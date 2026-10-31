@@ -2,7 +2,7 @@
 
 Connect stock Magpie to NovaFlow, use the AI models authorized for your account, and install, update and share company skills.
 
-- **Account sync** with a dedicated plugin connection key.
+- **Account sync** with a dedicated plugin connection key; models are fetched automatically after sign-in and every model shows its source group.
 - **Company skill store** with categories, search, publishers, versions and file previews.
 - **Skill sharing** from your registered Magpie Library.
 - **Configuration initialization** for Magpie Image, image generation and the stable update channel.
