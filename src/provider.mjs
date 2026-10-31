@@ -17,7 +17,6 @@ const RESERVED_HEADERS = new Set([
   "authorization", "proxy-authorization", "x-api-key", "x-goog-api-key", "host",
   "content-length", "connection", "transfer-encoding", "upgrade", "keep-alive", "te", "trailer",
 ])
-const BODY_LIMIT = 1 << 20
 
 function protocolOf(value) {
   const aliases = {
@@ -61,16 +60,22 @@ function cleanHeaders(value) {
   return Object.fromEntries(out)
 }
 
-async function boundedJsonBody(input, init) {
+function invalidRequestBody() {
+  return Object.assign(new Error("NovaFlow inference request body is invalid"), {
+    code: "INVALID_REQUEST_BODY",
+    status: 400,
+  })
+}
+
+async function readJsonBody(input, init) {
   const body = init?.body
-  if (typeof body === "string") return Buffer.byteLength(body) <= BODY_LIMIT ? body : ""
+  if (typeof body === "string") return body
   if (body instanceof ArrayBuffer || ArrayBuffer.isView(body)) {
-    if (body.byteLength > BODY_LIMIT) return ""
     return new TextDecoder().decode(body)
   }
-  if (body instanceof Blob) return body.size <= BODY_LIMIT ? body.text() : ""
+  if (body instanceof Blob) return body.text()
   if (body !== undefined || !(input instanceof Request) || !input.body || input.bodyUsed) return ""
-  return input.clone().text().then((text) => Buffer.byteLength(text) <= BODY_LIMIT ? text : "")
+  return input.clone().text()
 }
 
 function operationProtocol(pathname, basePath) {
@@ -198,8 +203,6 @@ export function createNovaFlowProvider({
   report = () => {},
 }) {
   assertSupportedHost(hostVersion)
-  let catalog = null
-  let catalogAt = 0
   let loginCatalog = null
   let loginCatalogOwner = ""
   const nativeAuth = new NativeAccountAuth({ api })
@@ -261,8 +264,6 @@ export function createNovaFlowProvider({
       route.api.npm = model.capabilities?.imageGeneration ? CHAT : PROTOCOLS[modelProtocol(model)]
       output[route.id] = route
     }
-    catalog = { ids: new Set(Object.keys(output)), failures }
-    catalogAt = Date.now()
     report("models.ready", { keyCount: accounts.rows.size, routeCount: Object.keys(output).length, failures: failures.length })
     return output
   }
@@ -295,14 +296,19 @@ export function createNovaFlowProvider({
       let form = null, payload
       if (multipart) {
         const raw = init?.body !== undefined ? await new Response(init.body).arrayBuffer() : await input.clone().arrayBuffer()
-        if (raw.byteLength > 64 << 20) throw new Error("Image edit body is too large")
         form = await new Response(raw, { headers: sourceHeaders }).formData()
         payload = { model: form.get("model") }
       } else {
-        const bodyText = await boundedJsonBody(input, init)
-        try { payload = JSON.parse(bodyText) } catch {}
+        const bodyText = await readJsonBody(input, init)
+        try {
+          payload = JSON.parse(bodyText)
+        } catch {
+          throw invalidRequestBody()
+        }
+        if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw invalidRequestBody()
       }
       const modelId = typeof payload?.model === "string" ? payload.model : ""
+      if (!modelId) throw invalidRequestBody()
       const route = accounts.resolve(modelId)
       if (!route) throw new Error("The selected NovaFlow route is no longer authorized; refresh models and sign in again")
       payload.model = route.model.upstream_model_id
@@ -438,10 +444,6 @@ export function createNovaFlowProvider({
     },
     "chat.headers": async ({ model }, result) => {
       if (model?.providerID !== "novaflow") return
-      const legacyImage = accounts.resolve(model.id)?.model.upstream_model_id === "gpt-image-2"
-      if (!catalog?.ids?.has(model.id) && !legacyImage && catalogAt && Date.now() - catalogAt < 60_000) {
-        throw Object.assign(new Error("The selected NovaFlow model is stale"), { signIn: "expired" })
-      }
       result.headers ??= {}
     },
     async config(cfg) {
