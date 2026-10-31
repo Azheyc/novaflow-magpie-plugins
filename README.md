@@ -8,7 +8,7 @@
 - **配置初始化**：按需设置 Magpie Image、生图模型和稳定更新渠道。
 - **主题适配**：插件页面跟随 Magpie 的浅色、深色主题。
 
-需要 Magpie **0.1.2058 或更新版本**及 NovaFlow 账户。插件固定连接 [NovaFlow 官网](https://www.ycnovaflow.vip)，无需自行配置服务器。
+需要 Magpie **0.1.2058 或更新版本**及 NovaFlow 账户。插件固定使用 [NovaFlow 官网](https://www.ycnovaflow.vip)，并兼容官方无 `www` 域名 `https://ycnovaflow.vip`；无需自行配置服务器。
 
 ## 安装
 

@@ -1,5 +1,10 @@
 import { AccountManager, modelRoute, routeId } from "./accounts.mjs"
-import { assertSupportedHost, compareVersions } from "./config.mjs"
+import {
+  PRODUCTION_ORIGIN,
+  PRODUCTION_ORIGIN_ALIASES,
+  assertSupportedHost,
+  compareVersions,
+} from "./config.mjs"
 import { NativeAccountAuth } from "./native-auth.mjs"
 
 const CHAT = "@ai-sdk/openai-compatible"
@@ -88,8 +93,17 @@ function endpointHeaders(protocol, key) {
 }
 
 async function listKeyModels(config, key, signal, fetchImpl = fetch) {
-  const base = new URL(String(key.base_url || config.origin))
-  if (base.origin !== config.origin) throw new Error("Credential base URL does not match the fixed NovaFlow origin")
+  const declaredBase = new URL(String(key.base_url || config.origin))
+  const trustedOrigins = new Set([config.origin])
+  if (config.origin === PRODUCTION_ORIGIN) {
+    for (const origin of PRODUCTION_ORIGIN_ALIASES) trustedOrigins.add(origin)
+  }
+  if (!trustedOrigins.has(declaredBase.origin)) {
+    throw new Error("Credential base URL does not match the fixed NovaFlow origin")
+  }
+  // Keep discovery on the canonical origin even when an older NovaFlow
+  // backend advertises the controlled apex-domain alias.
+  const base = new URL(config.origin)
   const seen = new Set()
   const entries = []
   let path = "/v1/models"
@@ -107,7 +121,7 @@ async function listKeyModels(config, key, signal, fetchImpl = fetch) {
     entries.push(...body.data)
     if (typeof body.next === "string" && body.next) {
       const next = new URL(body.next, base)
-      if (next.origin !== base.origin || next.pathname !== "/v1/models") throw new Error("Model pagination left the fixed origin")
+      if (!trustedOrigins.has(next.origin) || next.pathname !== "/v1/models") throw new Error("Model pagination left the fixed origin")
       path = "/v1/models" + next.search
     } else if (body.has_more === true) {
       const last = body.last_id ?? body.data.at(-1)?.id

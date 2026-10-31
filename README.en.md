@@ -8,7 +8,7 @@ Connect stock Magpie to NovaFlow, use the AI models authorized for your account,
 - **Configuration initialization** for Magpie Image, image generation and the stable update channel.
 - **Light and dark themes** following Magpie.
 
-Requires Magpie **0.1.2058 or newer** and a [NovaFlow account](https://www.ycnovaflow.vip). The server address is fixed; no server setup is needed.
+Requires Magpie **0.1.2058 or newer** and a [NovaFlow account](https://www.ycnovaflow.vip). The plugin uses the `www` server as canonical and also accepts the official `https://ycnovaflow.vip` domain; no server setup is needed.
 
 ## Install
 

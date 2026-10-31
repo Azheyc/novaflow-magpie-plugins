@@ -1,6 +1,10 @@
 export const PLUGIN_ID = "novaflow"
-export const PLUGIN_VERSION = "1.5.11"
+export const PLUGIN_VERSION = "1.5.12"
 export const PRODUCTION_ORIGIN = "https://www.ycnovaflow.vip"
+export const PRODUCTION_ORIGIN_ALIASES = Object.freeze([
+  PRODUCTION_ORIGIN,
+  "https://ycnovaflow.vip",
+])
 export const SERVICE_HOST = "127.0.0.1"
 export const SERVICE_PORT = 3488
 export const HOST_MIN_VERSION = "0.1.2058"
