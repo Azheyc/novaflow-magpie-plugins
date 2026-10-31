@@ -1,0 +1,18 @@
+node_modules/
+.local/
+coverage/
+*.tgz
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Local agent guidance and private development/acceptance records.
+/AGENTS.md
+/docs/*
+!/docs/MAGPIE-LICENSE
+/test/fixtures/contract-v1/README.md
+
+# Test code and test automation are retained locally only.
+/test/
+/.github/

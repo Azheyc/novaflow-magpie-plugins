@@ -1,0 +1,17 @@
+NovaFlow Magpie plugin
+
+This project is a derivative of sub2api-magpie-plugin, distributed under the
+MIT License. The original MIT copyright notice is retained in LICENSE.
+
+Upstream project and protocol inspiration:
+- Sub2API: https://github.com/Wei-Shaw/sub2api
+- sub2api-magpie-plugin: https://github.com/FischelChern/sub2api-magpie-plugin
+
+Magpie is a separate project: https://github.com/yetone/magpie
+
+The bundled page/magpie-components.css contains CSS excerpts from Magpie
+0.1.2058, commit 2d11cde056d6307f74b2b4318430d80bb394517d:
+internal/gui/assets/plugins.css and internal/gui/assets/app.css.
+Copyright (c) 2026 yetone. MIT License, retained in docs/MAGPIE-LICENSE.
+The theme-only page adapter follows Magpie's public plugin-page hello/theme
+message protocol. No Magpie host patches or private UI APIs are required.

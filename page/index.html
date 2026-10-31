@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NovaFlow</title>
+  <script src="_magpie/bridge.js"></script>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="app.css">
+  <script src="bootstrap.js" defer></script>
+  <style>
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--fg)}
+    body{display:grid;place-items:center;font:13px/1.45 var(--font)}
+    main{max-width:36rem;padding:2rem;text-align:center}
+    h1{font:600 20px/1.2 var(--font);margin:0 0 8px}
+    p{margin:0;color:var(--muted)}
+    a{color:var(--accent)}
+  </style>
+</head>
+<body>
+  <main>
+    <h1>NovaFlow</h1>
+    <p id="status">正在连接本机服务…</p>
+    <p><a id="fallback" href="http://127.0.0.1:3488/" hidden>打开本机 NovaFlow 服务</a></p>
+  </main>
+</body>
+</html>

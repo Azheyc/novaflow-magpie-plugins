@@ -1,0 +1,131 @@
+/*
+ * Magpie component CSS, copied verbatim from the official Magpie source.
+ * Copyright (c) 2026 yetone. MIT License: ../docs/MAGPIE-LICENSE.
+ * Source: internal/gui/assets/{app.css,plugins.css}
+ * Baseline: 0.1.2058, commit 2d11cde056d6307f74b2b4318430d80bb394517d.
+ * Plugin-specific adaptations belong in app.css, not in these excerpts.
+ */
+
+/* Magpie app.css:157-159 (verbatim). */
+button { font: inherit; color: inherit; background: none; border: 0; cursor: default; appearance: none; -webkit-appearance: none; text-align: center; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+input { font: inherit; color: var(--fg); }
+
+/* Magpie app.css:2044-2050 (verbatim). */
+.text { font-size: 12px; color: var(--ctl-fg); padding: 3px 7px; border-radius: 6px; transition: background .12s, color .12s; white-space: nowrap; }
+.text:hover { color: var(--fg); background: var(--pill); }
+.text.action { height: 27px; padding: 0 10px; border: 1px solid var(--line); background: var(--card); color: var(--fg-2); box-shadow: 0 1px 1px rgba(0, 0, 0, .04); display: inline-flex; align-items: center; justify-content: center; }
+.text.action:hover { border-color: var(--muted); background: var(--card-2); color: var(--fg); }
+.text.primary { color: var(--accent-fg); background: var(--accent); font-weight: 500; }
+.text.primary:hover { filter: brightness(1.08); }
+.text.danger:hover { color: var(--red); background: var(--red-soft); }
+
+/* Magpie app.css:3070-3072 (verbatim). */
+.segs { position: relative; display: inline-flex; padding: 2px; border-radius: 7px; background: var(--pill); align-self: flex-start; }
+.opt { position: relative; z-index: 1; white-space: nowrap; height: 22px; padding: 0 10px; border-radius: 5px; font-size: 12px; color: var(--muted); transition: color .18s var(--ease), transform .14s var(--ease); }
+.opt.on { color: var(--fg); }
+
+/* Magpie app.css:3085-3092 (verbatim). */
+.opt:hover:not(.on) { color: var(--fg-2); }
+.thumb {
+  position: absolute; top: 2px; bottom: 2px; left: 0; width: 0; border-radius: 6px;
+  background: var(--card); box-shadow: 0 1px 2px rgba(0, 0, 0, .12), 0 0 0 .5px rgba(0, 0, 0, .06);
+  transition: opacity .15s; /* the glide is slide()'s, which only it starts */
+  pointer-events: none;
+}
+.segs .thumb { border-radius: 5px; }
+
+/* Magpie plugins.css:10-19 (verbatim). */
+.pm-find {
+  display: flex; align-items: center; gap: 6px; height: 28px; padding: 0 10px; width: min(280px, 46%);
+  border-radius: 8px; background: var(--pill); color: var(--muted);
+  box-shadow: inset 0 0 0 1px transparent; transition: box-shadow .14s var(--ease), background .14s var(--ease);
+}
+.pm-find:focus-within { background: var(--card); box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent); }
+.pm-find svg { flex: none; }
+.pm-find input { flex: 1; min-width: 0; border: 0; outline: none; background: none; color: var(--fg); font: inherit; font-size: 12.5px; }
+.pm-find input::placeholder { color: var(--faint); }
+.pm-find input::-webkit-search-cancel-button { cursor: default; }
+
+/* Magpie plugins.css:40-54 (verbatim). */
+/* sections of cards */
+.pm-sec { display: flex; flex-direction: column; gap: 9px; }
+.pm-sechead { display: flex; align-items: baseline; gap: 8px; padding: 0 2px; flex-wrap: wrap; }
+.pm-sechead h3 { margin: 0; font-size: 12.5px; font-weight: 650; }
+.pm-sechead span { font-size: 11.5px; color: var(--muted); }
+.pm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(262px, 1fr)); gap: 10px; }
+/* the GitHub section's kinds, what's installed and its own field, on one
+   line while they fit; the field goes under them, the whole width, when
+   they don't */
+.pm-ghbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.pm-ghbar .segs { flex: none; max-width: 100%; }
+/* it takes a share of the room the strips leave, up to what its
+   placeholder needs, so "Filter by name, author or description" isn't cut */
+.pm-ghfind { flex: 4 0 auto; width: min(240px, 100%); max-width: min(320px, 100%); }
+.pm-ghnone { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 22px 12px; border-radius: 12px; border: 1px dashed var(--line); font-size: 12px; color: var(--muted); text-align: center; }
+
+/* Magpie plugins.css:63-93 (verbatim). */
+.pm-logo { flex: none; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: var(--pill); color: var(--fg-2); }
+.pm-logo .ic { width: 20px; height: 20px; }
+.pm-logo.big { width: 44px; height: 44px; border-radius: 12px; }
+.pm-logo.big .ic { width: 25px; height: 25px; }
+
+.pm-card {
+  display: flex; flex-direction: column; gap: 8px; min-width: 0; padding: 12px 12px 11px 13px;
+  border-radius: 12px; border: 1px solid var(--line); background: var(--card); cursor: default; outline: none;
+  transition: border-color .16s var(--ease), box-shadow .16s var(--ease), transform .16s var(--ease);
+}
+.pm-card:hover { border-color: color-mix(in srgb, var(--fg) 16%, var(--line)); box-shadow: 0 4px 14px rgba(20, 22, 30, .07); }
+.pm-card:focus-visible { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent); border-color: var(--accent); }
+.pm-top { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.pm-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.pm-name { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.pm-name b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-by { display: flex; align-items: center; gap: 4px; min-width: 0; font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pm-by > span { overflow: hidden; text-overflow: ellipsis; }
+.pm-verified { display: inline-flex; align-items: center; gap: 3px; color: var(--green); font-weight: 500; }
+.pm-sum {
+  margin: 0; font-size: 12px; line-height: 1.45; color: var(--fg-2); min-height: 2.9em;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pm-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; min-height: 18px; }
+.pm-dl { display: inline-flex; align-items: center; gap: 3px; }
+.pm-ver { font: var(--code-style, normal) var(--code-weight, 400) 10.5px var(--code-font, var(--code)); font-stretch: var(--code-stretch, 100%); color: var(--muted); }
+.pm-chip { display: inline-flex; align-items: center; height: 17px; padding: 0 6px; border-radius: 5px; font-size: 10.5px; font-weight: 500; background: var(--pill); color: var(--fg-2); }
+.pm-chip.up { background: var(--accent-soft); color: var(--accent); }
+button.pm-chip { border: 0; font-family: inherit; cursor: pointer; }
+button.pm-chip.up:hover:not(:disabled) { background: var(--accent); color: var(--accent-fg); }
+button.pm-chip:disabled { cursor: default; opacity: .6; }
+
+/* Magpie plugins.css:125-150 (verbatim). */
+.pm-chip.soft { background: none; box-shadow: inset 0 0 0 1px var(--line); color: var(--muted); }
+
+/* a plugin's one button */
+.pm-act {
+  flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  height: 26px; min-width: 64px; padding: 0 12px; border-radius: 13px;
+  font-size: 12px; font-weight: 600; white-space: nowrap;
+  background: var(--pill); color: var(--fg-2); transition: background .14s var(--ease), color .14s var(--ease), filter .14s;
+}
+.pm-act:hover:not(:disabled) { background: var(--pill-hover); color: var(--fg); }
+.pm-act.get { background: var(--accent-soft); color: var(--accent); }
+.pm-act.get:hover:not(:disabled) { background: var(--accent); color: var(--accent-fg); }
+/* an update out: Install's size, green for its own (#1587) */
+.pm-act.pm-up { background: var(--green-soft); color: var(--green); }
+.pm-act.pm-up:hover:not(:disabled) { background: var(--green); color: var(--card); }
+/* Sign in, in a list of cards or rows, is Install's tinted capsule: one
+   style for a row's action, so no card shouts over its neighbours (HIG's
+   one filled button is a sheet's own); a plugin's page fills it */
+.pm-act.go { background: var(--accent-soft); color: var(--accent); }
+.pm-act.go:hover:not(:disabled), .pm-dact .pm-act.go { background: var(--accent); color: var(--accent-fg); }
+.pm-dact .pm-act.go:hover:not(:disabled) { filter: brightness(1.08); }
+.pm-act.done { background: none; color: var(--green); padding: 0 8px; min-width: 0; }
+.pm-act.done:hover:not(:disabled) { background: var(--green-soft); color: var(--green); }
+.pm-act.busy { color: var(--muted); font-weight: 500; }
+.pm-act:disabled:not(.busy):not(.done) { opacity: .55; }
+.pm-act .spin { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid currentColor; border-right-color: transparent; animation: spin .7s linear infinite; }
+
+/* Magpie plugins.css:116-117,121 (verbatim). */
+.pm-chip.kind { gap: 4px; flex: none; padding: 0; background: none; color: var(--fg-2); font-weight: 400; }
+.pm-chip.kind svg { flex: none; }
+.pm-chip.kind.pv { color: color-mix(in srgb, var(--accent) 80%, var(--fg-2)); }
