@@ -94,29 +94,18 @@ export class ManualInitialization {
     return targets.length ? `已安装并关联 ${targets.length} 个已接管 Agent` : "已安装，当前没有已接管的 Agent"
   }
   async imageReference() {
-    const routes = this.accounts.projection().modelRoutes || []
-    const found = routes.filter(item => item.upstreamModelId === "gpt-image-2").sort((a, b) => a.id.localeCompare(b.id))[0]
-    if (!found) throw new Error("尚未同步到 NovaFlow 的 gpt-image-2，请刷新 NovaFlow 供应商模型后重试")
-    const providers = (await readObject(join(this.directory, "providers.json"), true)).value.providers || []
-    const collision = providers.some(item => item.id === "novaflow" && ["chat", "responses", "anthropic", "gemini", "decide"].some(field => item[field]))
-    const hostID = collision ? "novaflow-plugin" : "novaflow"
-    const own = providers.find(item => item.id === hostID)
-    if (own?.off === true) throw new Error("NovaFlow 供应商已关闭，请在 Magpie 供应商页面启用 NovaFlow，再重试初始化。sub2api 是另一个独立插件。")
-    // Validate what stock Magpie has registered, not just our private catalog.
-    const path = join(this.directory, "plugin-providers.json")
-    let cached
-    try {
-      const info = await lstat(path)
-      if (!info.isFile() || info.isSymbolicLink()) throw new Error("not a regular cache")
-      cached = JSON.parse(await readFile(path, "utf8"))
-    } catch { throw new Error("尚未确认 Magpie 的供应商登记，请刷新 NovaFlow 供应商模型后重试") }
-    const registered = (Array.isArray(cached) ? cached : cached.providers || []).find(item => item.id === "novaflow")
-    const image = registered?.models?.find(item => item.id === found.id)
-    if (registered?.signedIn !== true || !image?.outputs?.includes("image") || (image.npm || registered.npm) !== "@ai-sdk/openai-compatible") {
-      throw new Error("Magpie 尚未登记 NovaFlow 的 gpt-image-2 生图能力，请刷新 NovaFlow 供应商模型后重试")
+    const native = this.accounts.projection().native
+    for (const item of native?.providers || []) {
+      if (item.off) continue
+      const providers = (await readObject(join(this.directory, "providers.json"), true)).value.providers || []
+      const saved = providers.find(provider => provider.id === item.id)
+      if (!saved || saved.off || !saved.key) continue
+      const catalog = await this.host.readProviderCatalog(item.id)
+      if (catalog.models.some(model => model.id === "gpt-image-2" && model.draws === true)) return item.id + "/gpt-image-2"
     }
-    return hostID + "/" + found.id
+    throw new Error("Magpie 尚未获取到可用的 NovaFlow gpt-image-2 生图模型，请先点击立即同步或在原生供应商中获取模型")
   }
+
   async apply() {
     const marker = this.markerStore.read()
     marker.fields ||= {}

@@ -239,9 +239,7 @@ export function createPageServer({
         }
         if (request.method === "POST" && url.pathname === "/api/logout") {
           await readJson(request)
-          const result = await session.logout()
-          accounts.disposeOwnedOnly()
-          json(response, 200, { result, state: state() })
+          json(response, 200, await control.command({ operation: "logout" }))
           return
         }
         if (request.method === "POST" && url.pathname === "/api/preferences") {

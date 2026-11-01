@@ -192,6 +192,9 @@ function renderSummary() {
   text.append(detail)
   summary.append(text, button("立即同步", syncNow, "sync-action"))
   root.append(summary)
+  const native = state.accounts?.native
+  if (native?.migrationRequired) root.append(el("p", "settings-note", "已改为 Magpie 原生供应商。请在 Agent 中重新选择 NovaFlow 分组下的模型；旧版 nf: 模型引用已退出。生图设置可通过配置初始化重新选择。"))
+  for (const failure of native?.failures || []) root.append(el("p", "inline-error", failure.message))
   if (pageError) root.append(el("p", "inline-error", `状态刷新失败：${pageError}。当前显示上次读取结果。`))
 }
 
@@ -399,7 +402,7 @@ function field(title, input, hint = "") {
 
 function renderSync() {
   const sync = state.sync || {}, defaults = state.defaults || sync.defaults || {}, box = el("div", "disclosure-body")
-  box.append(row("账户同步", `${storeModel.syncLabel(state)} · ${state.accounts?.routeCount || 0} 个模型路由 · ${state.accounts?.keyCount || 0} 个授权 Key`))
+  box.append(row("账户同步", `${storeModel.syncLabel(state)} · ${state.accounts?.routeCount || 0} 个原生模型 · ${state.accounts?.keyCount || 0} 个授权 Key`))
   if (sync.errorCode) box.append(row("同步需要处理", sync.errorCode))
   const defaultsText = defaults.status === "complete" ? "上次初始化已完成，可再次执行" : defaults.status === "partial_failure" ? "上次有未完成项，可重新初始化" : defaults.status === "running" ? "正在初始化" : "等待手动初始化"
   box.append(row("初始化状态", defaultsText), el("p", "settings-note", "每次点击并确认后，将重新检查 magpie-image 及已接管的 Agent，把生图模型设为 NovaFlow 的 gpt-image-2，更新渠道设为稳定版。此前自行修改的这两项设置会被重新设定。账户同步不执行初始化。"))

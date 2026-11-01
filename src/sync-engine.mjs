@@ -27,6 +27,7 @@ export class SyncEngine {
     session,
     credentials,
     accounts,
+    nativeProviders,
     skills,
     defaults,
     preferences,
@@ -41,6 +42,7 @@ export class SyncEngine {
     this.session = session
     this.credentials = credentials
     this.accounts = accounts
+    this.nativeProviders = nativeProviders
     this.skills = skills
     this.defaults = defaults
     this.preferences = preferences
@@ -225,8 +227,11 @@ export class SyncEngine {
       }
       if (generation !== this.session.generation || signal.aborted) throw Object.assign(new Error("Stale sync response"), { code: "SYNC_STALE_RESPONSE" })
       if (unchanged) {
+        const native = await this.nativeProviders?.reconcile({ signal, refresh: ["native", "page", "manual", "models", "login"].includes(reason) })
+        const nativeFailure = native?.failures?.length > 0
+        if (this.nativeProviders) this.state.components.keys = nativeFailure ? "failed" : "success"
         this.state.components.skills = !companySkills ? "unknown" : storeFailure ? "failed" : "success"
-        this.state.status = storeFailure ? "partial" : "ready"
+        this.state.status = storeFailure || nativeFailure ? "partial" : "ready"
         this.state.stale = false
         this.failures = 0
         this.saveState()
@@ -238,6 +243,8 @@ export class SyncEngine {
       let credentialProjection
       try {
         credentialProjection = await this.credentials.load({ snapshot, signal })
+        const native = await this.nativeProviders?.reconcile({ signal, refresh: ["native", "page", "manual", "models", "login"].includes(reason) })
+        if (native?.failures?.length) throw Object.assign(new Error(native.failures[0].message), { code: native.failures[0].code })
         components.keys = "success"
       } catch (error) {
         if (error.code === "PLUGIN_KEY_REVISION_CONFLICT") {
@@ -299,6 +306,7 @@ export class SyncEngine {
       if (this.isFatal(error)) {
         this.session.revoke(error.message)
         this.accounts.disposeOwnedOnly()
+        await this.nativeProviders?.clear()
       }
       this.saveState()
       this.report("sync.failed", { code: this.state.errorCode, status: error.status ?? 0, stale: this.state.stale, reason, message: String(error?.message ?? "") })

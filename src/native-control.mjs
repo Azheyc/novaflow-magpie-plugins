@@ -30,6 +30,7 @@ export function createNativeControl({
   session,
   sync,
   accounts,
+  nativeProviders,
   skills,
   host,
   api,
@@ -161,6 +162,7 @@ export function createNativeControl({
       }
       case "logout": {
         const result = await session.logout()
+        await nativeProviders?.clear()
         if (forgetHostAuth) await forgetHostAuth()
         accounts.disposeOwnedOnly()
         sync.stop("NovaFlow signed out")

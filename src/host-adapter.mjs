@@ -17,6 +17,7 @@ function runChild(exec, command, args, options = {}) {
       maxBuffer: 4 << 20,
       timeout: options.timeout ?? 15_000,
       env: options.env ?? process.env,
+      signal: options.signal,
     }, (error, stdout, stderr) => {
       if (error) {
         error.stdout = String(stdout ?? "")
@@ -176,6 +177,39 @@ export class MagpieHostAdapter {
     const target = PRODUCTION_ORIGIN + "/profile"
     const args = this.platform === "win32" ? ["url.dll,FileProtocolHandler", target] : [target]
     await runChild(this.execImpl, command, args, { env: this.env, timeout: 5_000 })
+  }
+
+  async refreshProvider(id, signal) {
+    if (!/^novaflow-key-[a-f0-9]{20}$/.test(id)) throw new Error("Invalid managed provider identifier")
+    if (!this.available) await this.initialize()
+    if (!this.available) throw new Error("Magpie CLI is unavailable")
+    await this.run(["provider", "refresh", id], { timeout: 45_000, signal })
+  }
+
+  providerCacheDirectory() {
+    const configBase = isAbsolute(this.env.XDG_CONFIG_HOME || "") ? this.env.XDG_CONFIG_HOME : join(this.home, ".config")
+    // A portable Magpie puts both configuration and cache beneath its data folder.
+    if (resolve(this.directory) !== resolve(join(configBase, "magpie"))) return join(this.directory, "cache", "models")
+    const cacheBase = isAbsolute(this.env.XDG_CACHE_HOME || "") ? this.env.XDG_CACHE_HOME : join(this.home, ".cache")
+    return join(cacheBase, "magpie", "models")
+  }
+
+  async readProviderCatalog(id) {
+    if (!/^novaflow-key-[a-f0-9]{20}$/.test(id)) throw new Error("Invalid managed provider identifier")
+    const path = join(this.providerCacheDirectory(), id + ".json")
+    let cached
+    try {
+      const info = await lstat(path)
+      if (!info.isFile() || info.isSymbolicLink()) throw new Error("Invalid model cache")
+      cached = JSON.parse(await readFile(path, "utf8"))
+      if (!Array.isArray(cached.models)) throw new Error("Invalid model cache")
+    } catch (error) {
+      if (error.code === "ENOENT") return { models: [] }
+      throw new Error("Magpie model cache is unavailable")
+    }
+    return { models: cached.models.filter(model => typeof model.ID === "string").map(model => ({
+      id: model.ID, name: String(model.Name || model.ID), draws: model.Draws === true,
+    })) }
   }
 
   async library() {

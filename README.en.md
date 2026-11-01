@@ -2,8 +2,8 @@
 
 Connect stock Magpie to NovaFlow, use the AI models authorized for your account, and install, update and share company skills.
 
-- **Account sync** with a dedicated plugin connection key; models are fetched automatically after sign-in and every model shows its source group.
-- **Reasoning effort** follows model metadata and NovaFlow's Codex catalog, including extra-high and maximum levels when supported.
+- **Account sync** with a dedicated plugin connection key; each authorized API key becomes a native Magpie provider named after its source group.
+- **Native models and requests**: Magpie handles model discovery, reasoning effort, image detection and inference. The plugin does not rewrite model IDs or parse or forward inference requests.
 - **Company skill store** with categories, search, publishers, versions and file previews.
 - **Skill sharing** from your registered Magpie Library.
 - **Configuration initialization** can be repeated; details start collapsed while the action stays visible.
@@ -28,9 +28,17 @@ Installation adds a **NovaFlow** provider and sidebar entry. Avoid enabling mult
 1. Sign in to [NovaFlow](https://www.ycnovaflow.vip) and open your profile.
 2. Generate or copy the current **Magpie plugin connection key**.
 3. In Magpie, open **Providers → Add provider → NovaFlow** and paste the key.
-4. After sync, choose models, routes and Agents through Magpie's existing controls.
+4. The plugin creates **NovaFlow · group name** native providers and asks Magpie to fetch their models. Choose models, routes and Agents through Magpie's existing controls.
 
 A connection key starts with `nfpc_`. It is not a model API key or account password. Each account has one current connection key; after rotation, sign in again with the replacement.
+
+## Model connections
+
+**NovaFlow** is the account connection entry and intentionally lists no models. Models belong to the generated **NovaFlow · group name** native providers. Multiple keys in a group also show their key names.
+
+The plugin synchronizes addresses, keys and protocol endpoints only. Magpie owns original model names and inference. Unchanged background polls do not rewrite configuration or refetch models; **Sync now** asks Magpie to fetch again. Model selections, disabled providers and other native settings are preserved. Manually replacing a managed connection's address or key reports a conflict instead of overwriting it.
+
+When upgrading from 1.5.x, select a model from a native provider in each Agent; old `nf:` references are no longer forwarded. Run **Initialize configuration** again to select an image model. Signing out removes connections still owned by the plugin while keeping manually added providers and installed skills. Disabling or uninstalling the plugin does not sign out; sign out before uninstalling.
 
 ## Company skills
 
@@ -62,7 +70,7 @@ Initialization runs only after you click and confirm it. You can repeat it to:
 - Select the authorized NovaFlow `gpt-image-2` image model.
 - Set the Magpie update channel to stable.
 
-The NovaFlow provider must be enabled and signed in, with `gpt-image-2` available. Sign-in, background sync and **Sync now** do not initialize settings. Repeating initialization reapplies these settings; MCP changes may cause Agents to reload configuration.
+Sign in to NovaFlow and let Magpie discover `gpt-image-2` as an image model on an enabled native provider. Sign-in, background sync and **Sync now** do not initialize settings. Repeating initialization reapplies these settings; MCP changes may cause Agents to reload configuration.
 
 ## Connection and data
 
@@ -72,7 +80,7 @@ Magpie stores sign-in credentials, and private plugin state stays under Magpie's
 
 ## Troubleshooting
 
-**No models?** Check that the NovaFlow provider is enabled and the connection key is valid, then sync. Enterprise administrators must configure model groups and access.
+**No models?** The NovaFlow account entry has no models. Check the generated **NovaFlow · group name** providers, enable them and sync with a valid connection key. Enterprise administrators must configure model groups and access.
 
 **Missing local skill?** Import it into Magpie Library first, then refresh the share list. An unregistered folder on disk is not listed.
 

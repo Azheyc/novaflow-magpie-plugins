@@ -11,6 +11,8 @@ import { SkillManager } from "./skills.mjs"
 import { JsonStore, defaultDataDir, randomId, secureMkdir } from "./state-store.mjs"
 import { SyncEngine } from "./sync-engine.mjs"
 import { createNativeControl } from "./native-control.mjs"
+import { NativeProviderSync } from "./native-providers.mjs"
+import { readFile } from "node:fs/promises"
 
 let singleton = null
 
@@ -35,7 +37,6 @@ export async function getRuntime(input, options = {}) {
   const api = new ApiClient(config)
   const accounts = new AccountManager({
     store: new JsonStore(`${dataDir}/keys.json`, { revision: "", ownedKeyIds: [], rows: [], updatedAt: "" }),
-    onChange: () => singleton?.sync?.schedule?.(0),
   })
   const session = new SessionManager({
     api,
@@ -58,6 +59,12 @@ export async function getRuntime(input, options = {}) {
   if (hostAvailable && compareVersions(hostVersion, config.hostMinVersion) < 0) {
     assertSupportedHost(hostVersion)
   }
+  const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"))
+  const nativeProviders = new NativeProviderSync({
+    directory: input.directory, config, host, accounts, session,
+    icon: pkg.magpie?.icon || "",
+    store: new JsonStore(`${dataDir}/native-providers.json`, { entries: {} }),
+  })
   const preferencesStore = new JsonStore(`${dataDir}/preferences.json`, {
     targetAgents: [],
     autoSyncSkills: false,
@@ -92,6 +99,7 @@ export async function getRuntime(input, options = {}) {
     session,
     credentials,
     accounts,
+    nativeProviders,
     skills: skillManager,
     defaults,
     preferences,
@@ -104,6 +112,7 @@ export async function getRuntime(input, options = {}) {
     session,
     sync,
     accounts,
+    nativeProviders,
     skills: skillManager,
     host,
     api,
@@ -135,6 +144,7 @@ export async function getRuntime(input, options = {}) {
     dataDir,
     api,
     accounts,
+    nativeProviders,
     session,
     credentials,
     host,
@@ -176,6 +186,7 @@ export async function getRuntime(input, options = {}) {
     accounts,
     control,
     credentials,
+    sync,
     hostVersion,
     report: (event, details) => {
       if (process.env.NOVAFLOW_PLUGIN_DIAGNOSTICS === "1") {
@@ -193,14 +204,23 @@ export async function getRuntime(input, options = {}) {
       sync.resetSession()
     }
     if (projection.status === "authenticated") {
+      if (reason === "account-switch" || reason === "login") {
+        void nativeProviders.clearForeign().catch(() => { runtime.nativeCleanupFailed = true })
+      }
       sync.start()
       return
     }
     sync.stop("NovaFlow session is no longer usable")
+    void nativeProviders.clear().catch(() => { runtime.nativeCleanupFailed = true })
   })
   // Loading a saved session does not emit a login event. Resume polling on
   // restart too; every sync still revalidates identity with NovaFlow.
-  if (session.internalAuth()) sync.start()
+  if (session.internalAuth()) {
+    await nativeProviders.clearForeign()
+    sync.start()
+  } else if (Object.keys(nativeProviders.store.read().entries || {}).length) {
+    await nativeProviders.clear()
+  }
   // The stock plugin page uses this loopback service. Login stays in
   // Magpie's provider form; no custom host or browser binding is required.
   if (process.env.NOVAFLOW_PLUGIN_DISABLE_SERVICE !== "1") void runtime.start()
