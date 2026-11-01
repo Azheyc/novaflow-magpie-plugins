@@ -96,6 +96,7 @@ export function createPageServer({
   skillManager,
   api,
   host,
+  imageConnector = null,
   defaults,
   preferencesStore,
   hostVersion = config.hostMinVersion,
@@ -147,6 +148,7 @@ export function createPageServer({
       }
     }
     try {
+      if (imageConnector && await imageConnector.handle(request, response)) return
       if (request.method === "GET" && STATIC.has(url.pathname)) {
         const [file, type] = STATIC.get(url.pathname)
         let body = await readFile(join(ROOT, file))

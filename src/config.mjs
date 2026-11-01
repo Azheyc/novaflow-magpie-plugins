@@ -1,5 +1,5 @@
 export const PLUGIN_ID = "novaflow"
-export const PLUGIN_VERSION = "1.5.15"
+export const PLUGIN_VERSION = "1.5.16"
 export const PRODUCTION_ORIGIN = "https://www.ycnovaflow.vip"
 export const PRODUCTION_ORIGIN_ALIASES = Object.freeze([
   PRODUCTION_ORIGIN,
@@ -7,6 +7,10 @@ export const PRODUCTION_ORIGIN_ALIASES = Object.freeze([
 ])
 export const SERVICE_HOST = "127.0.0.1"
 export const SERVICE_PORT = 3488
+export const IMAGE_PROVIDER_ID = "novaflow-image"
+export const IMAGE_PROVIDER_NAME = "NovaFlow 生图"
+export const IMAGE_CONNECTOR_PATH = "/internal/novaflow-image/v1"
+export const IMAGE_MODEL_ID = "gpt-image-2"
 export const HOST_MIN_VERSION = "0.1.2058"
 export const HOST_API_EVIDENCE = Object.freeze({
   version: HOST_MIN_VERSION,
@@ -25,6 +29,10 @@ export function createRuntimeConfig() {
     hostMinVersion: HOST_MIN_VERSION,
     serviceHost: SERVICE_HOST,
     servicePort: SERVICE_PORT,
+    imageProviderId: IMAGE_PROVIDER_ID,
+    imageProviderName: IMAGE_PROVIDER_NAME,
+    imageConnectorPath: IMAGE_CONNECTOR_PATH,
+    imageModelId: IMAGE_MODEL_ID,
     apiPrefix: "/api/novaflow/v1/plugin",
     pollingMs: 60_000,
     pollingJitter: 0.2,

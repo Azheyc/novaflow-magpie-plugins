@@ -58,14 +58,16 @@ magpie plugin add github:Azheyc/novaflow-magpie-plugins
 插件页面的「配置初始化」由用户点击并确认后执行，可以重复使用：
 
 - 安装内置 `magpie-image` MCP，并关联 Magpie 已接管的 Agent。
-- 将生图模型设为当前账户获授权的 NovaFlow `gpt-image-2`。
+- 自动建立仅用于生图的 **NovaFlow 生图**连接，并将生图模型设为 `gpt-image-2`。
 - 将 Magpie 更新渠道设为稳定版。
 
-初始化要求 NovaFlow 供应商已启用、已登录，且账户可用模型中包含 `gpt-image-2`。登录、后台同步或「立即同步」不会触发初始化。重复初始化会重新应用上述设置；关联 MCP 可能使 Agent 重新读取配置。
+`gpt-image-2` 不会出现在 NovaFlow 供应商的文本模型列表中。初始化创建的 NovaFlow 生图连接没有对话模型，只供「设置 → 图像」使用；图片请求由插件动态选择当前获授权的 NovaFlow Key，不需要另存 API Key。
+
+初始化要求 NovaFlow 供应商已启用、已登录，且账户可用模型中包含 `gpt-image-2`。登录、后台同步或「立即同步」不会触发初始化。重复初始化会重新应用上述设置并刷新生图连接；插件调用的 Magpie CLI 会禁用 Codex app-server 自动重启，关联 MCP 仍可能使 Agent 在下次读取配置时更新。
 
 ## 连接与数据
 
-插件只连接 `https://www.ycnovaflow.vip`，不提供服务器地址输入项。`127.0.0.1:3488` 是插件的本机页面服务，由插件自动管理。
+插件只连接 `https://www.ycnovaflow.vip`，不提供服务器地址输入项。`127.0.0.1:3488` 是插件的本机页面与生图转发服务，由插件自动管理，页面和连接器使用不同权限边界。
 
 登录凭据由 Magpie 保存，插件私有状态也保存在 Magpie 配置目录下。连接密钥和模型 API Key 不会显示在插件页面或写入 URL、日志。模型调用、技能目录和分享由 NovaFlow 提供；公司权限以平台当前授权为准。
 

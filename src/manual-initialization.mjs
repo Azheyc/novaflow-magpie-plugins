@@ -19,8 +19,8 @@ async function readObject(path, optional = false) {
 
 // Only these two host settings can be changed, and only by the explicit command.
 export class ManualInitialization {
-  constructor({ host, accounts, markerStore, backupStore, directory }) {
-    Object.assign(this, { host, accounts, markerStore, backupStore, directory })
+  constructor({ host, accounts, imageConnector, markerStore, backupStore, directory }) {
+    Object.assign(this, { host, accounts, imageConnector, markerStore, backupStore, directory })
     this.pending = null
   }
   status() {
@@ -94,34 +94,21 @@ export class ManualInitialization {
     return targets.length ? `已安装并关联 ${targets.length} 个已接管 Agent` : "已安装，当前没有已接管的 Agent"
   }
   async imageReference() {
-    const routes = this.accounts.projection().modelRoutes || []
-    const found = routes.filter(item => item.upstreamModelId === "gpt-image-2").sort((a, b) => a.id.localeCompare(b.id))[0]
-    if (!found) throw new Error("尚未同步到 NovaFlow 的 gpt-image-2，请刷新 NovaFlow 供应商模型后重试")
-    const providers = (await readObject(join(this.directory, "providers.json"), true)).value.providers || []
-    const collision = providers.some(item => item.id === "novaflow" && ["chat", "responses", "anthropic", "gemini", "decide"].some(field => item[field]))
-    const hostID = collision ? "novaflow-plugin" : "novaflow"
-    const own = providers.find(item => item.id === hostID)
-    if (own?.off === true) throw new Error("NovaFlow 供应商已关闭，请在 Magpie 供应商页面启用 NovaFlow，再重试初始化。sub2api 是另一个独立插件。")
-    // Validate what stock Magpie has registered, not just our private catalog.
-    const path = join(this.directory, "plugin-providers.json")
-    let cached
-    try {
-      const info = await lstat(path)
-      if (!info.isFile() || info.isSymbolicLink()) throw new Error("not a regular cache")
-      cached = JSON.parse(await readFile(path, "utf8"))
-    } catch { throw new Error("尚未确认 Magpie 的供应商登记，请刷新 NovaFlow 供应商模型后重试") }
-    const registered = (Array.isArray(cached) ? cached : cached.providers || []).find(item => item.id === "novaflow")
-    const image = registered?.models?.find(item => item.id === found.id)
-    if (registered?.signedIn !== true || !image?.outputs?.includes("image") || (image.npm || registered.npm) !== "@ai-sdk/openai-compatible") {
-      throw new Error("Magpie 尚未登记 NovaFlow 的 gpt-image-2 生图能力，请刷新 NovaFlow 供应商模型后重试")
+    if (this.markerStore.read().fields?.imageProvider?.status !== "success") {
+      throw new Error("NovaFlow 生图连接尚未配置，请重试初始化")
     }
-    return hostID + "/" + found.id
+    if (!this.imageConnector?.route()) throw new Error("尚未同步到 NovaFlow 的 gpt-image-2，请刷新 NovaFlow 供应商模型后重试")
+    return this.imageConnector.reference
   }
   async apply() {
     const marker = this.markerStore.read()
     marker.fields ||= {}
     const tasks = [
       ["mcp", () => this.imageMCP()],
+      ["imageProvider", async () => {
+        await this.imageConnector.ensureProvider()
+        return "已配置 NovaFlow 生图连接"
+      }],
       ["imageGen", async () => {
         const reference = await this.imageReference()
         await this.editSetting("imageGen", reference)

@@ -58,14 +58,16 @@ Company administrators manage categories, uploads, availability, deletion and ve
 Initialization runs only after you click and confirm it. You can repeat it to:
 
 - Install built-in `magpie-image` MCP and associate Agents already managed by Magpie.
-- Select the authorized NovaFlow `gpt-image-2` image model.
+- Create a dedicated **NovaFlow 生图** connector and select `gpt-image-2`.
 - Set the Magpie update channel to stable.
 
-The NovaFlow provider must be enabled and signed in, with `gpt-image-2` available. Sign-in, background sync and **Sync now** do not initialize settings. Repeating initialization reapplies these settings; MCP changes may cause Agents to reload configuration.
+`gpt-image-2` stays out of the NovaFlow provider's text-model list. The dedicated NovaFlow 生图 connector has no chat models and is used only by Settings → Images. The plugin selects the current authorized NovaFlow key for each image request, so no API key is stored in the connector.
+
+The NovaFlow provider must be enabled and signed in, with `gpt-image-2` available. Sign-in, background sync and **Sync now** do not initialize settings. Repeating initialization reapplies these settings and refreshes the image connector. Magpie CLI work started by the plugin disables automatic Codex app-server restarts; MCP changes may still cause Agents to reload configuration when they next read it.
 
 ## Connection and data
 
-The fixed server is `https://www.ycnovaflow.vip`. The plugin automatically manages a local page service at `127.0.0.1:3488`; this is not the NovaFlow server.
+The fixed server is `https://www.ycnovaflow.vip`. The plugin automatically manages a local page and image-forwarding service at `127.0.0.1:3488`; this is not the NovaFlow server. The page and image connector enforce separate authorization boundaries.
 
 Magpie stores sign-in credentials, and private plugin state stays under Magpie's configuration directory. Connection keys and model API keys are excluded from plugin pages, URLs and logs. NovaFlow provides model requests, company catalogs and shared skills; current platform permissions govern access.
 

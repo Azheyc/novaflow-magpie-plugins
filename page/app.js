@@ -402,7 +402,7 @@ function renderSync() {
   if (sync.errorCode) box.append(row("同步需要处理", sync.errorCode))
   const defaultsText = defaults.status === "complete" ? "上次初始化已完成，可再次执行" : defaults.status === "partial_failure" ? "上次有未完成项，可重新初始化" : defaults.status === "running" ? "正在初始化" : "等待手动初始化"
   box.append(row("初始化状态", defaultsText), el("p", "settings-note", "每次点击并确认后，将重新检查 magpie-image 及已接管的 Agent，把生图模型设为 NovaFlow 的 gpt-image-2，更新渠道设为稳定版。此前自行修改的这两项设置会被重新设定。账户同步不执行初始化。"))
-  for (const item of defaults.results || []) box.append(row(({ mcp: "生图 MCP", imageGen: "生图模型", updateChannel: "更新渠道" })[item.id] || item.id, item.message || item.status))
+  for (const item of defaults.results || []) box.append(row(({ mcp: "生图 MCP", imageProvider: "生图连接", imageGen: "生图模型", updateChannel: "更新渠道" })[item.id] || item.id, item.message || item.status))
   const section = el("section", "disclosure config-initialization"), heading = el("div", "section-heading initialization-heading"), title = el("div")
   title.append(el("h2", "", "配置初始化"), el("p", "", "手动初始化 Magpie 设置，可重复执行"))
   heading.append(title, button("初始化配置", confirmInitialization, "primary"))
@@ -412,7 +412,7 @@ function renderSync() {
 
 function confirmInitialization() {
   const body = el("div")
-  body.append(el("p", "", "将安装 magpie-image 并关联当前已接管的 Agent，生图模型选择 NovaFlow 的 gpt-image-2，更新渠道设为稳定版。每次确认均重新执行，生图模型和更新渠道将覆盖为上述设置。MCP 关联会修改对应 Agent 配置，正在使用的 Agent 可能需要重新连接。"), button("确认初始化", () => run("initialize", {}, "初始化结果已更新，请查看各项状态", closeDialog), "primary"))
+  body.append(el("p", "", "将安装 magpie-image 并关联当前已接管的 Agent，建立独立的 NovaFlow 生图连接，生图模型选择 gpt-image-2，更新渠道设为稳定版。每次确认均重新执行，生图模型和更新渠道将覆盖为上述设置。MCP 关联会修改对应 Agent 配置，正在使用的 Agent 可能需要重新连接。"), button("确认初始化", () => run("initialize", {}, "初始化结果已更新，请查看各项状态", closeDialog), "primary"))
   modal("初始化 Magpie 配置", body)
 }
 
