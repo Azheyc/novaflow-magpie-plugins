@@ -255,3 +255,10 @@ footer button { padding: 1px 0; color: var(--accent); font-size: 11px; }
 }
 
 .initialization-heading { padding: 12px 14px; margin-bottom: 0; align-items: center; }
+.initialization-heading .actions { align-items: center; gap: 5px; }
+.initialization-details { margin: 0; border-width: 1px 0 0; border-radius: 0; }
+.initialization-details > summary { display: none; }
+.initialization-toggle { display: grid; place-items: center; width: 27px; height: 27px; padding: 0; color: var(--muted); font-size: 16px; line-height: 1; }
+.initialization-toggle[aria-expanded="true"] { color: var(--fg); }
+.initialization-chevron { display: block; transition: transform .14s var(--ease); }
+.initialization-toggle[aria-expanded="true"] .initialization-chevron { transform: rotate(180deg); }

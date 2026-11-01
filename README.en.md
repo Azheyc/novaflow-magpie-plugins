@@ -3,9 +3,10 @@
 Connect stock Magpie to NovaFlow, use the AI models authorized for your account, and install, update and share company skills.
 
 - **Account sync** with a dedicated plugin connection key; models are fetched automatically after sign-in and every model shows its source group.
+- **Reasoning effort** follows model metadata and NovaFlow's Codex catalog, including extra-high and maximum levels when supported.
 - **Company skill store** with categories, search, publishers, versions and file previews.
 - **Skill sharing** from your registered Magpie Library.
-- **Configuration initialization** for Magpie Image, image generation and the stable update channel.
+- **Configuration initialization** can be repeated; details start collapsed while the action stays visible.
 - **Light and dark themes** following Magpie.
 
 Requires Magpie **0.1.2058 or newer** and a [NovaFlow account](https://www.ycnovaflow.vip). The plugin uses the `www` server as canonical and also accepts the official `https://ycnovaflow.vip` domain; no server setup is needed.

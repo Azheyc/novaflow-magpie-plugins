@@ -60,6 +60,53 @@ function cleanHeaders(value) {
   return Object.fromEntries(out)
 }
 
+function uniqueReasoningLevels(values) {
+  const out = []
+  for (const value of values.flat(Infinity)) {
+    const level = typeof value === "string"
+      ? value
+      : value && typeof value === "object"
+        ? String(value.effort ?? value.value ?? "")
+        : ""
+    if (level && !out.includes(level)) out.push(level)
+  }
+  return out
+}
+
+function knownReasoningLevels(modelId) {
+  const id = String(modelId ?? "").toLowerCase().split("/").at(-1)
+  const base = ["low", "medium", "high", "xhigh"]
+  if (/^gpt-image/.test(id)) return []
+  if (/^gpt-5/.test(id)) {
+    if (/^gpt-5\.6-(sol|terra)(?:-|$)/.test(id)) return [...base, "max", "ultra"]
+    if (/^gpt-5\.6(?:-|$)/.test(id)) return [...base, "max"]
+    return base
+  }
+  if (/^gpt-6\.1-sol(?:-|$)/.test(id) || /^gpt-6-astra(?:-|$)/.test(id)) return [...base, "max", "ultra"]
+  if (/^gpt-6-sol(?:-|$)/.test(id) || /^gpt-6-luna(?:-|$)/.test(id)) return [...base, "max"]
+  if (/^gpt-6\.1-terra(?:-|$)/.test(id)) return ["none", ...base]
+  return []
+}
+
+function reasoningLevelsFromModel(item, modelId) {
+  const capabilities = item?.capabilities?.reasoning
+  const sources = [
+    item?.supported_reasoning_levels,
+    item?.reasoning_levels,
+    item?.reasoning_options?.filter(option => option?.type === "effort").map(option => option.values),
+    capabilities?.effort,
+    capabilities?.efforts,
+    capabilities?.supported_reasoning_levels,
+    item?.reasoning?.effort?.valid,
+    item?.reasoning?.effort?.values,
+  ]
+  const explicit = uniqueReasoningLevels(sources)
+  const hasDeclaredLevels = sources.some(value => value !== undefined && value !== null)
+  if (hasDeclaredLevels) return explicit
+  const known = knownReasoningLevels(modelId)
+  return known.length ? known : undefined
+}
+
 function invalidRequestBody() {
   return Object.assign(new Error("NovaFlow inference request body is invalid"), {
     code: "INVALID_REQUEST_BODY",
@@ -143,9 +190,7 @@ async function listKeyModels(config, key, signal, fetchImpl = fetch) {
       context_window: Number(item.context_window ?? item.context_length ?? 0),
       max_output_tokens: Number(item.max_output_tokens ?? item.max_completion_tokens ?? 0),
       reasoning: item.reasoning === true || item.capabilities?.reasoning === true,
-      reasoning_levels: Array.isArray(item.supported_reasoning_levels)
-        ? item.supported_reasoning_levels.map((level) => typeof level === "string" ? level : level?.effort).filter(Boolean)
-        : [],
+      reasoning_levels: reasoningLevelsFromModel(item, item.upstream_model_id ?? item.id),
       service_tiers: Array.isArray(item.service_tiers) ? item.service_tiers : Array.isArray(item.serviceTiers) ? item.serviceTiers : [],
       capabilities: {
         imageGeneration: /^gpt-image-2$/.test(String(item.upstream_model_id ?? item.id)),

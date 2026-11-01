@@ -5,6 +5,7 @@ const storeModel = globalThis.NovaFlowStore
 let state = null, busy = false, loading = false, resourceLoading = false
 let local = null, localError = "", storeError = "", pageError = ""
 let accountKey = "", resourcesFor = "", resourcesAt = 0, revision = 0, toastTimer, dialogVersion = 0
+let initializationExpanded = false
 let category = "all", installationFilter = "all", query = ""
 let shareDraft = null
 let backdropPressed = false
@@ -403,10 +404,30 @@ function renderSync() {
   const defaultsText = defaults.status === "complete" ? "上次初始化已完成，可再次执行" : defaults.status === "partial_failure" ? "上次有未完成项，可重新初始化" : defaults.status === "running" ? "正在初始化" : "等待手动初始化"
   box.append(row("初始化状态", defaultsText), el("p", "settings-note", "每次点击并确认后，将重新检查 magpie-image 及已接管的 Agent，把生图模型设为 NovaFlow 的 gpt-image-2，更新渠道设为稳定版。此前自行修改的这两项设置会被重新设定。账户同步不执行初始化。"))
   for (const item of defaults.results || []) box.append(row(({ mcp: "生图 MCP", imageGen: "生图模型", updateChannel: "更新渠道" })[item.id] || item.id, item.message || item.status))
-  const section = el("section", "disclosure config-initialization"), heading = el("div", "section-heading initialization-heading"), title = el("div")
+  const section = el("section", "config-initialization"), heading = el("div", "section-heading initialization-heading"), title = el("div")
   title.append(el("h2", "", "配置初始化"), el("p", "", "手动初始化 Magpie 设置，可重复执行"))
-  heading.append(title, button("初始化配置", confirmInitialization, "primary"))
-  section.append(heading, box)
+  heading.append(title)
+  const actions = el("div", "actions"), details = el("details", "disclosure initialization-details"), summary = el("summary", "", "配置初始化详情")
+  summary.hidden = true
+  details.open = initializationExpanded
+  details.addEventListener("toggle", () => { initializationExpanded = details.open })
+  details.append(summary, box)
+  const action = button("初始化配置", confirmInitialization, "primary")
+  const toggle = button("", () => {
+    details.open = !details.open
+    initializationExpanded = details.open
+    const label = details.open ? "收起初始化详情" : "展开初始化详情"
+    toggle.title = label
+    toggle.setAttribute("aria-label", label)
+    toggle.setAttribute("aria-expanded", String(details.open))
+  }, "initialization-toggle")
+  toggle.append(el("span", "initialization-chevron", "⌄"))
+  toggle.title = initializationExpanded ? "收起初始化详情" : "展开初始化详情"
+  toggle.setAttribute("aria-label", toggle.title)
+  toggle.setAttribute("aria-expanded", String(initializationExpanded))
+  actions.append(action, toggle)
+  heading.append(actions)
+  section.append(heading, details)
   root.append(section)
 }
 
