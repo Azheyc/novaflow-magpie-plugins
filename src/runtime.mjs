@@ -3,7 +3,6 @@ import { AccountManager } from "./accounts.mjs"
 import { PRODUCTION_CONFIG, assertSupportedHost, compareVersions } from "./config.mjs"
 import { CredentialLoader } from "./credentials.mjs"
 import { MagpieHostAdapter } from "./host-adapter.mjs"
-import { ImageConnector } from "./image-connector.mjs"
 import { ManualInitialization } from "./manual-initialization.mjs"
 import { createPageServer } from "./page-service.mjs"
 import { createNovaFlowProvider } from "./provider.mjs"
@@ -64,24 +63,14 @@ export async function getRuntime(input, options = {}) {
     autoSyncSkills: false,
   })
   const preferences = preferencesStore.read()
-  const instanceStore = new JsonStore(`${dataDir}/instance.json`, { instanceId: "", imageProviderToken: "" })
+  const instanceStore = new JsonStore(`${dataDir}/instance.json`, { instanceId: "" })
   const instance = instanceStore.read()
   if (!instance.instanceId) {
     instance.instanceId = randomId(24)
+    instanceStore.write(instance)
   }
-  if (!/^nfimg_[A-Za-z0-9_-]{24,160}$/.test(String(instance.imageProviderToken ?? ""))) {
-    instance.imageProviderToken = `nfimg_${randomId(32)}`
-  }
-  instanceStore.write(instance)
-  const imageConnector = new ImageConnector({
-    config,
-    accounts,
-    session,
-    host,
-    token: instance.imageProviderToken,
-  })
   const defaults = new ManualInitialization({
-    host, accounts, imageConnector, directory: input.directory,
+    host, accounts, directory: input.directory,
     markerStore: new JsonStore(`${dataDir}/install-defaults-marker.json`, {
       status: "wait_config",
       reason: "wait_config",
@@ -137,7 +126,6 @@ export async function getRuntime(input, options = {}) {
     host,
     defaults,
     preferencesStore,
-    imageConnector,
     hostVersion,
   })
 
@@ -153,7 +141,6 @@ export async function getRuntime(input, options = {}) {
     sync,
     skillManager,
     defaults,
-    imageConnector,
     page,
     hooks,
     attachInput(nextInput) {

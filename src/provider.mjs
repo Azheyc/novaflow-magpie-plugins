@@ -250,13 +250,18 @@ export function createNovaFlowProvider({
     accounts.rebuildRoutes({ imageRouteIds: all.filter(({ model }) => model.capabilities?.imageGeneration).map(({ row, model }) => routeId(row, model.upstream_model_id)) })
     accounts.persist()
     for (const { row, model } of all) {
-      // Magpie's current plugin contract still places image-only models in
-      // the provider's chat list. Keep image routes private and expose them
-      // through the dedicated local image connector configured during init.
-      if (model.capabilities?.imageGeneration) continue
       const group = String(row.group_name || row.group_id || "")
       const route = modelRoute(row, model, group)
-      route.api.npm = PROTOCOLS[modelProtocol(model)]
+      const publicId = accounts.resolve(route.id)?.publicId
+      if (model.capabilities?.imageGeneration && !publicId) continue
+      if (publicId) {
+        route.id = publicId
+        route.api.id = publicId
+        if (model.capabilities?.imageGeneration) {
+          route.name = model.upstream_model_id + (group ? ` · ${group}` : "")
+        }
+      }
+      route.api.npm = model.capabilities?.imageGeneration ? CHAT : PROTOCOLS[modelProtocol(model)]
       output[route.id] = route
     }
     report("models.ready", { keyCount: accounts.rows.size, routeCount: Object.keys(output).length, failures: failures.length })

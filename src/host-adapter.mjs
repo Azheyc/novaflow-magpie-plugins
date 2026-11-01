@@ -2,15 +2,7 @@ import { execFile } from "node:child_process"
 import { access, chmod, constants as fsConstants, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, stat, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
 import { delimiter, dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
-import {
-  IMAGE_CONNECTOR_PATH,
-  IMAGE_MODEL_ID,
-  IMAGE_PROVIDER_ID,
-  IMAGE_PROVIDER_NAME,
-  PRODUCTION_ORIGIN,
-  SERVICE_HOST,
-  SERVICE_PORT,
-} from "./config.mjs"
+import { PRODUCTION_ORIGIN } from "./config.mjs"
 import { skillDescription } from "./skill-metadata.mjs"
 import { manifestFor, hashSkillManifest } from "./skill-packages.mjs"
 
@@ -153,12 +145,7 @@ export class MagpieHostAdapter {
       ...options,
       // Magpie loads providers for Library commands too. The entry point
       // returns no hooks in this child, so no service or sync can start.
-      env: {
-        ...this.env,
-        ...options.env,
-        NOVAFLOW_PLUGIN_CLI_CHILD: "1",
-        MAGPIE_DEV_DISABLE_CODEX_RESTART: "1",
-      },
+      env: { ...this.env, ...options.env, NOVAFLOW_PLUGIN_CLI_CHILD: "1" },
     })
   }
 
@@ -189,67 +176,6 @@ export class MagpieHostAdapter {
     const target = PRODUCTION_ORIGIN + "/profile"
     const args = this.platform === "win32" ? ["url.dll,FileProtocolHandler", target] : [target]
     await runChild(this.execImpl, command, args, { env: this.env, timeout: 5_000 })
-  }
-
-  async ensureImageProvider({ id, name, baseURL, token, model } = {}) {
-    const expectedURL = `http://${SERVICE_HOST}:${SERVICE_PORT}${IMAGE_CONNECTOR_PATH}`
-    if (
-      id !== IMAGE_PROVIDER_ID
-      || name !== IMAGE_PROVIDER_NAME
-      || baseURL !== expectedURL
-      || model !== IMAGE_MODEL_ID
-      || !/^nfimg_[A-Za-z0-9_-]{24,160}$/.test(String(token ?? ""))
-    ) {
-      throw new Error("NovaFlow 生图连接参数无效")
-    }
-    if (!this.available) await this.initialize()
-    if (!this.available) throw new Error(this.lastError || "Magpie CLI is unavailable")
-
-    const providersPath = join(this.directory, "providers.json")
-    let providers = []
-    try {
-      const info = await stat(providersPath)
-      if (!info.isFile()) throw new Error("providers.json is not a regular file")
-      const value = JSON.parse(await readFile(providersPath, "utf8"))
-      if (!value || !Array.isArray(value.providers)) throw new Error("providers.json has an invalid shape")
-      providers = value.providers
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw new Error("Magpie 供应商配置无法读取，请修复后重试")
-    }
-
-    const existing = providers.find((provider) => provider?.id === id)
-    if (existing && existing.chat !== expectedURL) {
-      throw new Error("Magpie 已有同名供应商，且不是 NovaFlow 生图连接；请先处理该冲突")
-    }
-    if (existing) {
-      await this.run(["provider", "set", id, `name=${name}`, `url=${baseURL}`, `key=${token}`], { timeout: 30_000 })
-      await this.run(["provider", "on", id], { timeout: 30_000 })
-    } else {
-      await this.run([
-        "provider",
-        "add",
-        name,
-        `id=${id}`,
-        `url=${baseURL}`,
-        `key=${token}`,
-      ], { timeout: 30_000 })
-    }
-    await this.run(["provider", "models", id, "none"], { timeout: 30_000 })
-    await this.run(["provider", "refresh", id], { timeout: 45_000 })
-
-    const afterValue = JSON.parse(await readFile(providersPath, "utf8"))
-    const saved = (afterValue.providers || []).find((provider) => provider?.id === id)
-    if (
-      !saved
-      || saved.name !== name
-      || saved.chat !== expectedURL
-      || saved.key !== token
-      || saved.noModels !== true
-      || saved.off === true
-    ) {
-      throw new Error("Magpie 尚未正确保存 NovaFlow 生图连接，请重试")
-    }
-    return { id, reference: `${id}/${model}` }
   }
 
   async library() {

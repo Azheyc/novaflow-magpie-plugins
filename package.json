@@ -1,6 +1,6 @@
 {
   "name": "novaflow-magpie-plugins",
-  "version": "1.5.16",
+  "version": "1.5.15",
   "description": "NovaFlow provider, synchronization and Library integration for Magpie",
   "type": "module",
   "main": "./index.mjs",
@@ -16,7 +16,7 @@
     "NOTICE"
   ],
   "scripts": {
-    "check": "node --check index.mjs && node --check src/config.mjs && node --check src/api-client.mjs && node --check src/accounts.mjs && node --check src/credentials.mjs && node --check src/host-adapter.mjs && node --check src/image-connector.mjs && node --check src/manual-initialization.mjs && node --check src/install-defaults.mjs && node --check src/native-auth.mjs && node --check src/native-control.mjs && node --check src/page-service.mjs && node --check src/provider.mjs && node --check src/runtime.mjs && node --check src/session.mjs && node --check src/skill-packages.mjs && node --check src/skills.mjs && node --check src/state-store.mjs && node --check src/sync-engine.mjs && node --check page/request.js && node --check page/app.js && node --check page/bootstrap.js && node --check page/store-model.mjs && node --check page/theme.js && node --check src/skill-metadata.mjs",
+    "check": "node --check index.mjs && node --check src/config.mjs && node --check src/api-client.mjs && node --check src/accounts.mjs && node --check src/credentials.mjs && node --check src/host-adapter.mjs && node --check src/manual-initialization.mjs && node --check src/install-defaults.mjs && node --check src/native-auth.mjs && node --check src/native-control.mjs && node --check src/page-service.mjs && node --check src/provider.mjs && node --check src/runtime.mjs && node --check src/session.mjs && node --check src/skill-packages.mjs && node --check src/skills.mjs && node --check src/state-store.mjs && node --check src/sync-engine.mjs && node --check page/request.js && node --check page/app.js && node --check page/bootstrap.js && node --check page/store-model.mjs && node --check page/theme.js && node --check src/skill-metadata.mjs",
     "pack:verify": "npm pack --dry-run",
     "hooks:install": "git config --local core.hooksPath .githooks",
     "build": "node scripts/build-production.mjs",
