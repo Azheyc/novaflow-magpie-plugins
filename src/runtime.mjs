@@ -118,9 +118,6 @@ export async function getRuntime(input, options = {}) {
     api,
     preferencesStore,
     defaults,
-    forgetHostAuth: async () => {
-      if (input.client?.auth?.remove) await input.client.auth.remove({ path: { id: "novaflow" } })
-    },
     hostVersion,
   })
   const page = createPageServer({
@@ -153,6 +150,7 @@ export async function getRuntime(input, options = {}) {
     defaults,
     page,
     hooks,
+    control,
     attachInput(nextInput) {
       const directory = hostDirectory(nextInput)
       if (directory !== input.directory) throw new Error("Magpie changed input.directory while the plugin host was running")
@@ -213,6 +211,15 @@ export async function getRuntime(input, options = {}) {
     sync.stop("NovaFlow session is no longer usable")
     void nativeProviders.clear().catch(() => { runtime.nativeCleanupFailed = true })
   })
+  // Retire only the old account placeholder, never native per-Key connections.
+  const legacyEntryRemoved = await nativeProviders.retireLegacyEntry()
+  const migrationStore = new JsonStore(`${dataDir}/page-login-migration.json`, {})
+  if (!migrationStore.read().hostAuthRetired && (legacyEntryRemoved || session.internalAuth()) && input.client?.auth?.remove) {
+    try {
+      await input.client.auth.remove({ path: { id: "novaflow" } })
+      migrationStore.write({ hostAuthRetired: true })
+    } catch { runtime.legacyAuthCleanupPending = true }
+  }
   // Loading a saved session does not emit a login event. Resume polling on
   // restart too; every sync still revalidates identity with NovaFlow.
   if (session.internalAuth()) {
@@ -221,8 +228,7 @@ export async function getRuntime(input, options = {}) {
   } else if (Object.keys(nativeProviders.store.read().entries || {}).length) {
     await nativeProviders.clear()
   }
-  // The stock plugin page uses this loopback service. Login stays in
-  // Magpie's provider form; no custom host or browser binding is required.
+  // The stock plugin page owns login through this protected loopback service.
   if (process.env.NOVAFLOW_PLUGIN_DISABLE_SERVICE !== "1") void runtime.start()
   return runtime
 }

@@ -22,9 +22,8 @@ const versionedName = outputName.replace(/-dev$/, `-${sourcePackage.version}-dev
 const output = join(localRoot, versionedName)
 const staged = `${output}.new`
 const packDirectory = join(localRoot, "dev-pack")
-const localOrigin = "http://localhost:15173"
+const serviceOrigin = "https://www.ycnovaflow.vip"
 const productionLine = 'export const PRODUCTION_ORIGIN = "https://www.ycnovaflow.vip"'
-const developmentLine = `export const PRODUCTION_ORIGIN = "${localOrigin}"`
 
 await rm(output, { recursive: true, force: true })
 await rm(staged, { recursive: true, force: true })
@@ -48,12 +47,12 @@ try {
   const config = await readFile(configPath, "utf8")
   const matches = config.split(productionLine).length - 1
   if (matches !== 1) throw new Error(`expected one production origin line, found ${matches}`)
-  await writeFile(configPath, config.replace(productionLine, developmentLine))
+  if (/localhost:15173|127\.0\.0\.1:18080/.test(config)) throw new Error("Refusing a development artifact with a local backend origin")
 
   const pkg = JSON.parse(await readFile(join(staged, "package.json"), "utf8"))
   await writeFile(join(staged, "dev-build.json"), JSON.stringify({
     kind: "local-development",
-    origin: localOrigin,
+    origin: serviceOrigin,
     package: pkg.name,
     version: pkg.version,
     builtAt: new Date().toISOString(),

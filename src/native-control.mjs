@@ -1,4 +1,7 @@
+import { connectionCredentials } from "./native-auth.mjs"
+
 const OPERATIONS = new Set([
+  "login",
   "initialize",
   "status",
   "sync",
@@ -39,6 +42,8 @@ export function createNativeControl({
   forgetHostAuth,
   hostVersion = config.hostMinVersion,
 }) {
+  let signingIn = false
+
   function state() {
     const identity = session.projection()
     const skillState = skills.projection()
@@ -80,6 +85,24 @@ export function createNativeControl({
     }
     if (auth) await session.activateAuth(auth)
     switch (operation) {
+      case "login": {
+        if (signingIn) throw Object.assign(new Error("正在连接 NovaFlow，请稍候"), { code: "PLUGIN_LOGIN_BUSY", status: 409 })
+        signingIn = true
+        try {
+          const credentials = connectionCredentials(payload.connection_key)
+          const owner = session.ownership()
+          await session.acceptLogin(credentials, { owner })
+          // Keep login within the page request budget; native discovery continues
+          // in the runtime and the page polls its redacted progress.
+          void sync.syncNow("login").catch(() => {})
+          return state()
+        } catch (error) {
+          if (error.status === 401 || error.status === 403) {
+            throw Object.assign(new Error("连接密钥无效、已过期或已撤销，请从当前 NovaFlow 平台复制最新密钥"), { code: "PLUGIN_CONNECTION_KEY_INVALID", status: 401 })
+          }
+          throw error
+        } finally { signingIn = false }
+      }
       case "status":
         return state()
       case "initialize":

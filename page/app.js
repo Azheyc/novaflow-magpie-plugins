@@ -5,6 +5,7 @@ const storeModel = globalThis.NovaFlowStore
 let state = null, busy = false, loading = false, resourceLoading = false
 let local = null, localError = "", storeError = "", pageError = ""
 let accountKey = "", resourcesFor = "", resourcesAt = 0, revision = 0, toastTimer, dialogVersion = 0
+let loginError = ""
 let initializationExpanded = false
 let category = "all", installationFilter = "all", query = ""
 let shareDraft = null
@@ -170,7 +171,11 @@ function renderHeader() {
   if (session.status === "authenticated") {
     const account = el("div", "account-summary"), text = el("div", "account-text")
     text.append(el("strong", "", session.displayName || "已连接 NovaFlow"), el("small", "muted", [roleLabel(session), ...(storeModel.enterprise(state) && session.company?.displayName ? [session.company.displayName] : [])].join(" · ")))
-    account.append(el("span", "connection-dot"), text, button("退出登录", confirmLogout, "quiet"))
+    account.append(el("span", "connection-dot"), text, button("更换账户", () => {
+      const body = el("div")
+      body.append(el("p", "", "更换账户前请先退出当前账户，再粘贴新的连接密钥。"), button("退出并更换账户", () => run("logout", {}, "已退出，请输入新的连接密钥", closeDialog), "primary"))
+      modal("更换 NovaFlow 账户", body)
+    }, "quiet"), button("退出登录", confirmLogout, "quiet"))
     header.append(account)
   }
   root.append(header)
@@ -193,7 +198,6 @@ function renderSummary() {
   summary.append(text, button("立即同步", syncNow, "sync-action"))
   root.append(summary)
   const native = state.accounts?.native
-  if (native?.migrationRequired) root.append(el("p", "settings-note", "已改为 Magpie 原生供应商。请在 Agent 中重新选择 NovaFlow 分组下的模型；旧版 nf: 模型引用已退出。生图设置可通过配置初始化重新选择。"))
   for (const failure of native?.failures || []) root.append(el("p", "inline-error", failure.message))
   if (pageError) root.append(el("p", "inline-error", `状态刷新失败：${pageError}。当前显示上次读取结果。`))
 }
@@ -402,7 +406,7 @@ function field(title, input, hint = "") {
 
 function renderSync() {
   const sync = state.sync || {}, defaults = state.defaults || sync.defaults || {}, box = el("div", "disclosure-body")
-  box.append(row("账户同步", `${storeModel.syncLabel(state)} · ${state.accounts?.routeCount || 0} 个原生模型 · ${state.accounts?.keyCount || 0} 个授权 Key`))
+  box.append(row("账户同步", `${storeModel.syncLabel(state)} · ${state.accounts?.routeCount || 0} 个可用模型 · ${state.accounts?.keyCount || 0} 个授权 Key`))
   if (sync.errorCode) box.append(row("同步需要处理", sync.errorCode))
   const defaultsText = defaults.status === "complete" ? "上次初始化已完成，可再次执行" : defaults.status === "partial_failure" ? "上次有未完成项，可重新初始化" : defaults.status === "running" ? "正在初始化" : "等待手动初始化"
   box.append(row("初始化状态", defaultsText), el("p", "settings-note", "每次点击并确认后，将重新检查 magpie-image 及已接管的 Agent，把生图模型设为 NovaFlow 的 gpt-image-2，更新渠道设为稳定版。此前自行修改的这两项设置会被重新设定。账户同步不执行初始化。"))
@@ -541,26 +545,57 @@ async function share(skill) {
 function confirmLogout() {
   if (busy || resourceLoading) return
   const body = el("div")
-  body.append(el("p", "", "退出后将移除本机 NovaFlow 登录，并注销当前会话。"), button("确认退出", () => run("logout", {}, "已退出 NovaFlow", closeDialog), "primary"))
+  body.append(el("p", "", "退出后将清除本机登录并移除本插件同步的供应商连接。平台连接密钥仍可再次使用。"), button("确认退出", () => run("logout", {}, "已退出 NovaFlow", closeDialog), "primary"))
   modal("退出 NovaFlow", body)
 }
 
 function renderLogin() {
-  const box = el("section", "login-panel"), steps = el("ol", "login-steps")
-  box.append(el("div", "login-symbol", "↗"), el("h2", "", "连接 NovaFlow，开始发现技能"), el("p", "", "请使用 NovaFlow 连接密钥完成连接，登录后自动读取同步状态。"))
-  steps.append(el("li", "", "在 NovaFlow 官网个人资料页生成连接密钥。"), el("li", "", "在 Magpie 进入「供应商 → 添加供应商 → NovaFlow」。"), el("li", "", "输入连接密钥，连接成功后返回此页。"))
-  box.append(steps, button("我已连接，刷新状态", load, "primary"))
+  const box = el("section", "login-panel"), steps = el("ol", "login-steps"), form = el("form", "share-form")
+  box.append(el("h2", "", "连接 NovaFlow"), el("p", "", "登录后自动同步各分组供应商与模型，无需在供应商页面添加账户。"))
+  steps.append(el("li", "", "在 NovaFlow 官网个人资料页生成连接密钥。"), el("li", "", "将当前连接密钥粘贴到下方，点击连接。"))
+  const label = el("label", "", "NovaFlow 插件连接密钥"), input = el("input", "")
+  input.id = "connection-key"
+  input.type = "password"
+  input.required = true
+  input.maxLength = 512
+  input.autocomplete = "off"
+  input.placeholder = "粘贴以 nfpc_ 开头的连接密钥"
+  input.dataset.lock = "true"
+  label.htmlFor = input.id
+  const submit = button(busy ? "正在连接…" : "连接 NovaFlow", null, "primary")
+  submit.type = "submit"
+  form.addEventListener("submit", async event => {
+    event.preventDefault()
+    if (busy || resourceLoading || !form.reportValidity()) return
+    const key = input.value.trim()
+    input.value = ""
+    loginError = ""
+    await run("login", { connection_key: key }, "账户已连接，正在同步各分组模型", undefined, error => { loginError = error.message })
+  })
+  form.append(label, input)
+  if (loginError) {
+    const error = el("p", "inline-error", loginError)
+    error.setAttribute("role", "alert")
+    form.append(error)
+  }
+  form.append(submit)
+  box.append(steps, form)
   root.append(box)
 }
 
 function render() {
+  const loginDraft = document.getElementById("connection-key")?.value || ""
   const active = document.activeElement, focusId = root.contains(active) ? active.id : ""
   let selection = null
   if (focusId && ["INPUT", "TEXTAREA"].includes(active.tagName)) { try { selection = [active.selectionStart, active.selectionEnd] } catch {} }
   root.replaceChildren()
   if (!state) { root.append(el("p", "empty", "正在连接 NovaFlow…")); return }
   renderHeader()
-  if (state.session?.status !== "authenticated") renderLogin()
+  if (state.session?.status !== "authenticated") {
+    renderLogin()
+    const input = document.getElementById("connection-key")
+    if (input && !busy) input.value = loginDraft
+  }
   else { renderSummary(); renderStore(); renderSync() }
   lockControls()
   const restored = focusId && document.getElementById(focusId)

@@ -279,7 +279,6 @@ export class SessionManager {
 
   async logout() {
     this.reload()
-    const refresh = this.state.refresh
     const loggedOutCredential = stableId(this.state.access, this.state.refresh)
     this.generation++
     this.state = {
@@ -291,23 +290,14 @@ export class SessionManager {
       localLogout: true,
       loggedOutCredential,
       logoutSynced: true,
+      lastError: "",
       generation: this.generation,
     }
     this.persist()
-    const owner = this.ownership()
     this.emit("logout")
-    if (!refresh) return { ok: true, synced: true }
-    try {
-      await this.api.logout(refresh)
-      return { ok: true, synced: true }
-    } catch (error) {
-      this.assertOwnership(owner)
-      this.state.logoutSynced = false
-      this.state.lastError = "Local sign-out completed; server sign-out is not synchronized"
-      this.persist()
-      this.emit("logout-unsynced")
-      return { ok: true, synced: false, code: error.code || "LOGOUT_UNSYNCED" }
-    }
+    // The connection key belongs to the platform account, not this installation.
+    // Signing out locally must not revoke it for this or other devices.
+    return { ok: true, synced: true }
   }
 
   revoke(reason = "NovaFlow access was revoked") {

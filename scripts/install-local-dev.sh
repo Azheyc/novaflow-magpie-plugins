@@ -25,4 +25,4 @@ fi
 
 "$magpie_bin" plugin add "$target"
 printf '\ninstalled local-development NovaFlow plugin from %s\n' "$target"
-printf 'development origin: http://localhost:15173\n'
+printf 'development package origin: https://www.ycnovaflow.vip\n'

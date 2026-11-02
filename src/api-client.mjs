@@ -161,13 +161,6 @@ export class ApiClient {
     }
   }
 
-  async logout(accessToken) {
-    return this.request(`${PLUGIN_PREFIX}/auth/revoke`, {
-      method: "POST",
-      accessToken,
-    })
-  }
-
   async bootstrap(accessToken, signal) {
     return this.request(`${PLUGIN_PREFIX}/bootstrap`, { accessToken, signal })
   }

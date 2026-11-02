@@ -3,6 +3,7 @@
 Connect stock Magpie to NovaFlow, use the AI models authorized for your account, and install, update and share company skills.
 
 - **Account sync** with a dedicated plugin connection key; each authorized API key becomes a native Magpie provider named after its source group.
+- **Provider icons**: newly added groups receive the NovaFlow logo automatically. Later account sync preserves your custom icon choices.
 - **Native models and requests**: Magpie handles model discovery, reasoning effort, image detection and inference. The plugin does not rewrite model IDs or parse or forward inference requests.
 - **Company skill store** with categories, search, publishers, versions and file previews.
 - **Skill sharing** from your registered Magpie Library.
@@ -21,24 +22,32 @@ magpie plugin add github:Azheyc/novaflow-magpie-plugins
 
 Alternatively, download a production archive from [Releases](https://github.com/Azheyc/novaflow-magpie-plugins/releases), extract it, and select the extracted directory in Magpie. Do not add the `.tgz` file directly as a plugin directory.
 
-Installation adds a **NovaFlow** provider and sidebar entry. Avoid enabling multiple NovaFlow copies together.
+Installation adds a **NovaFlow** sidebar entry; signing in creates native group providers for authorized keys. Avoid enabling multiple NovaFlow copies together.
 
 ## Sign in
 
 1. Sign in to [NovaFlow](https://www.ycnovaflow.vip) and open your profile.
 2. Generate or copy the current **Magpie plugin connection key**.
-3. In Magpie, open **Providers → Add provider → NovaFlow** and paste the key.
+3. In Magpie, open **Plugins → NovaFlow** in the sidebar, paste the key, and click **Connect NovaFlow**.
 4. The plugin creates **NovaFlow · group name** native providers and asks Magpie to fetch their models. Choose models, routes and Agents through Magpie's existing controls.
 
 A connection key starts with `nfpc_`. It is not a model API key or account password. Each account has one current connection key; after rotation, sign in again with the replacement.
 
 ## Model connections
 
-**NovaFlow** is the account connection entry and intentionally lists no models. Models belong to the generated **NovaFlow · group name** native providers. Multiple keys in a group also show their key names.
+Manage sign-in, synchronization and sign-out in the plugin sidebar page. Models belong to the generated **NovaFlow · group name** native providers. Multiple keys in a group also show their key names.
 
 The plugin synchronizes addresses, keys and protocol endpoints only. Magpie owns original model names and inference. Unchanged background polls do not rewrite configuration or refetch models; **Sync now** asks Magpie to fetch again. Model selections, disabled providers and other native settings are preserved. Manually replacing a managed connection's address or key reports a conflict instead of overwriting it.
 
-When upgrading from 1.5.x, select a model from a native provider in each Agent; old `nf:` references are no longer forwarded. Run **Initialize configuration** again to select an image model. Signing out removes connections still owned by the plugin while keeping manually added providers and installed skills. Disabling or uninstalling the plugin does not sign out; sign out before uninstalling.
+Upgrading from 1.6.0 preserves existing group providers, model choices and the saved session while retiring the empty account provider. Manage sign-in through the sidebar page thereafter.
+
+When upgrading from 1.5.x, select a model from a native provider in each Agent; old `nf:` references are no longer forwarded. Run **Initialize configuration** again to select an image model. Signing out clears the local session and connections still owned by the plugin, while keeping manually added providers and installed skills. It does not revoke the platform connection key or sign out other devices. Disabling or uninstalling the plugin does not sign out; sign out before uninstalling.
+
+## Menu bar balance
+
+In Magpie settings, select an enabled **NovaFlow · group name** under **Allowances in the menu bar**. Personal accounts show their available personal balance; enterprise accounts show the company's shared available balance in CNY. Group providers read the same account balance.
+
+An existing selection of the old NovaFlow account entry moves to an enabled group during sync. The plugin does not enable menu bar allowances if you have not selected them. Magpie controls the refresh interval and manual refresh; custom balance queries are preserved.
 
 ## Company skills
 
@@ -76,11 +85,11 @@ Sign in to NovaFlow and let Magpie discover `gpt-image-2` as an image model on a
 
 The fixed server is `https://www.ycnovaflow.vip`. The plugin automatically manages a local page service at `127.0.0.1:3488`; this is not the NovaFlow server.
 
-Magpie stores sign-in credentials, and private plugin state stays under Magpie's configuration directory. Connection keys and model API keys are excluded from plugin pages, URLs and logs. NovaFlow provides model requests, company catalogs and shared skills; current platform permissions govern access.
+Connection keys and model API keys stay in protected local files under Magpie's configuration directory. The connection key authorizes account sync and balance queries; model API keys authorize inference. Saved credentials are never returned to the page, placed in URLs or written to logs. NovaFlow provides model requests, company catalogs and shared skills; current platform permissions govern access.
 
 ## Troubleshooting
 
-**No models?** The NovaFlow account entry has no models. Check the generated **NovaFlow · group name** providers, enable them and sync with a valid connection key. Enterprise administrators must configure model groups and access.
+**No models?** Check the connection status in the plugin page, then check the generated **NovaFlow · group name** providers, enable them and sync with a valid connection key. Enterprise administrators must configure model groups and access.
 
 **Missing local skill?** Import it into Magpie Library first, then refresh the share list. An unregistered folder on disk is not listed.
 

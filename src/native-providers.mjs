@@ -6,6 +6,21 @@ import { stableId, randomId } from "./state-store.mjs"
 
 const CONNECTION_FIELDS = ["key", "chat", "responses", "anthropic", "gemini", "decide", "baseAPI"]
 const fingerprint = value => stableId(...CONNECTION_FIELDS.map(field => value[field] || ""))
+const BALANCE_FIELDS = ["balanceURL", "balancePath", "balanceMethod", "balanceToken"]
+const balanceFingerprint = value => stableId(...BALANCE_FIELDS.map(field => value[field] || ""))
+
+function accountBalance(config, identity, session) {
+  const access = session.internalAuth?.()?.access
+  if (!access || !["personal", "enterprise"].includes(identity.accountMode)) return null
+  return {
+    balanceURL: config.origin + config.apiPrefix + "/usage",
+    balancePath: "¥data." + (identity.accountMode === "enterprise" ? "company" : "personal") + ".available",
+    balanceMethod: "GET",
+    // Magpie's native account-balance query uses an explicit Authorization
+    // scheme for non-JWT tokens. It never uses this token for inference.
+    balanceToken: "Bearer " + access,
+  }
+}
 const failure = (code, message) => Object.assign(new Error(message), { code })
 
 function readConfig(path, optional = true) {
@@ -113,6 +128,7 @@ export class NativeProviderSync {
       if (foreignOnly) clear = true
       const entries = ledger.entries || {}
       const desired = new Map()
+      const balance = clear ? null : accountBalance(this.config, identity, this.session)
       const names = new Map()
       const failures = []
       const ids = (before.value.providers || []).map(item => item.id)
@@ -126,10 +142,10 @@ export class NativeProviderSync {
         const group = String(row.group_name || row.group_id || "未分组")
         const name = "NovaFlow · " + group + (names.get(group) > 1 ? " · " + String(row.display_name || row.key_id) : "")
         try {
-          desired.set(id, { id, name, ...connectionFor(this.config, row), keyId: String(row.key_id), groupName: group })
+          desired.set(id, { id, name, ...connectionFor(this.config, row), balance, keyId: String(row.key_id), groupName: group })
         } catch (error) { failures.push({ id, code: error.code, message: error.message }) }
       }
-      const nextEntries = {}, providers = [], queue = []
+      const nextEntries = {}, providers = [], queue = [], iconQueue = []
       const remaining = new Map(desired)
       let changed = false
       for (const current of before.value.providers || []) {
@@ -143,7 +159,17 @@ export class NativeProviderSync {
           continue
         }
         if (!(owned.fingerprints || []).includes(fingerprint(current))) {
-          providers.push(current)
+          let kept = current
+          if (!wanted && current.balanceToken && (owned.balanceTokenFingerprints || []).includes(stableId(current.balanceToken))) {
+            kept = { ...current }
+            // A manually changed model connection stays, but signing out must
+            // still forget the account credential we put beside it.
+            if ((owned.balanceFingerprints || []).includes(balanceFingerprint(current))) {
+              for (const field of BALANCE_FIELDS) delete kept[field]
+            } else delete kept.balanceToken
+            changed = true
+          }
+          providers.push(kept)
           nextEntries[current.id] = owned
           failures.push({ id: current.id, code: "PLUGIN_NATIVE_OWNERSHIP_CONFLICT", message: "供应商连接已被手动修改，未覆盖或删除，请在 Magpie 中确认" })
           remaining.delete(current.id)
@@ -151,27 +177,43 @@ export class NativeProviderSync {
         }
         if (!wanted) { changed = true; continue }
         remaining.delete(current.id)
-        const { keyId, groupName, ...connection } = wanted
-        const next = { ...current, ...connection, name: current.name === owned.name ? wanted.name : current.name }
+        const { keyId, groupName, balance, ...connection } = wanted
+        // Magpie omits empty protocol fields when saving an icon. Keep absent
+        // empty fields absent so the next poll does not rewrite the config.
+        const updates = Object.fromEntries(Object.entries(connection).filter(([field, value]) => value !== "" || Object.hasOwn(current, field)))
+        const next = { ...current, ...updates, name: current.name === owned.name ? wanted.name : current.name }
+        // Add or update only untouched balance settings. Custom balance queries
+        // must never receive a newly synchronized connection credential.
+        const managesBalance = balance && (!BALANCE_FIELDS.some(field => current[field])
+          || (owned.balanceFingerprints || []).includes(balanceFingerprint(current)))
+        if (managesBalance) Object.assign(next, balance)
         // User choices, aliases, disabled state, routing and extra settings stay native.
         providers.push(next)
         const newFingerprint = fingerprint(next)
         const connectionChanged = fingerprint(current) !== newFingerprint
+        const needsIcon = !!this.icon && !owned.iconInitialized && (!current.icon || current.icon === "generic" || current.icon === this.icon)
         nextEntries[current.id] = {
           ...owned, keyId, groupName, name: wanted.name,
           fingerprints: [...new Set([fingerprint(current), newFingerprint])],
           pendingRefresh: owned.pendingRefresh || connectionChanged,
+          iconInitialized: owned.iconInitialized || !needsIcon,
+          ...(managesBalance ? {
+            balanceFingerprints: [...new Set([balanceFingerprint(current), balanceFingerprint(next)])],
+            balanceTokenFingerprints: [...new Set([stableId(current.balanceToken || ""), stableId(next.balanceToken)])],
+          } : {}),
         }
+        if (needsIcon) iconQueue.push(current.id)
         if (JSON.stringify(current) !== JSON.stringify(next)) changed = true
         if (!current.off && (refresh || nextEntries[current.id].pendingRefresh)) queue.push(current.id)
       }
       for (const [id, wanted] of remaining) {
-        const { keyId, groupName, ...connection } = wanted
+        const { keyId, groupName, balance, ...connection } = wanted
         // A stable website fragment keeps Magpie's automatic duplicate-provider
         // folding from combining different group Keys with numbered names.
-        providers.push({ ...connection, ...(this.icon ? { icon: this.icon } : {}), website: this.config.origin + "/#" + id })
-        nextEntries[id] = { keyId, groupName, name: wanted.name, fingerprints: [fingerprint(connection)], pendingRefresh: true }
+        providers.push({ ...connection, ...(balance || {}), website: this.config.origin + "/#" + id })
+        nextEntries[id] = { keyId, groupName, name: wanted.name, fingerprints: [fingerprint(connection)], pendingRefresh: true, iconInitialized: !this.icon, ...(balance ? { balanceFingerprints: [balanceFingerprint(balance)], balanceTokenFingerprints: [stableId(balance.balanceToken)] } : {}) }
         queue.push(id)
+        if (this.icon) iconQueue.push(id)
         changed = true
       }
       // Record ownership before installing a connection, so a crash cannot orphan a Key.
@@ -187,8 +229,37 @@ export class NativeProviderSync {
       this.store.write({ ...ledger, ...scope, entries: nextEntries, migrationRequired })
       pending = { failures, migrationRequired, providers: [] }
       this.accounts.setNativeState(pending)
-      targets = { entries: nextEntries, providers, queue }
+      targets = { entries: nextEntries, providers, queue, iconQueue }
     } finally { release() }
+
+    for (const id of targets.iconQueue) {
+      this.session.assertOwnership(owner)
+      signal?.throwIfAborted()
+      try {
+        // Recheck after saving connections: another process may have removed
+        // the provider or the user may have chosen a different icon meanwhile.
+        const current = readConfig(this.path).value.providers?.find(item => item.id === id)
+        const entry = this.store.read().entries?.[id]
+        if (!current || !entry?.fingerprints?.includes(fingerprint(current))) continue
+        if (!current.icon || current.icon === "generic" || current.icon === this.icon) {
+          await this.host.syncProviderIcon(id, signal)
+        }
+        this.session.assertOwnership(owner)
+        const unlock = await this.lock(signal)
+        try {
+          this.session.assertOwnership(owner)
+          const ledger = this.store.read()
+          if (ledger.entries?.[id]) {
+            ledger.entries[id].iconInitialized = true
+            this.store.write(ledger)
+          }
+        } finally { unlock() }
+      } catch (error) {
+        this.session.assertOwnership(owner)
+        signal?.throwIfAborted()
+        pending.failures.push({ id, code: "PLUGIN_NATIVE_ICON_FAILED", message: "供应商图标同步未完成，请点击立即同步重试" })
+      }
+    }
 
     for (const id of targets.queue) {
       this.session.assertOwnership(owner)
@@ -208,7 +279,7 @@ export class NativeProviderSync {
       } catch (error) {
         this.session.assertOwnership(owner)
         signal?.throwIfAborted()
-        pending.failures.push({ id, code: "PLUGIN_NATIVE_REFRESH_FAILED", message: "原生供应商已保存，但 Magpie 获取模型未完成，请重新同步或在供应商页面获取模型" })
+        pending.failures.push({ id, code: "PLUGIN_NATIVE_REFRESH_FAILED", message: "模型获取未完成，请点击立即同步重试，或在 Magpie 供应商页面重新获取模型" })
       }
     }
     this.session.assertOwnership(owner)
@@ -220,12 +291,43 @@ export class NativeProviderSync {
         const provider = targets.providers.find(item => item.id === id)
         pending.providers.push({ id, keyId: entry.keyId, groupName: entry.groupName, name: provider?.name || entry.name, off: provider?.off === true, modelCount: catalog.models.length, models: catalog.models })
       } catch {
-        pending.failures.push({ id, code: "PLUGIN_NATIVE_CATALOG_UNAVAILABLE", message: "暂时无法读取 Magpie 原生模型缓存" })
+        pending.failures.push({ id, code: "PLUGIN_NATIVE_CATALOG_UNAVAILABLE", message: "暂时无法读取模型列表，请点击立即同步重试" })
       }
     }
     this.session.assertOwnership(owner)
+    const representative = pending.providers.find(item => !item.off && targets.providers.some(provider => provider.id === item.id
+      && provider.balanceURL === this.config.origin + this.config.apiPrefix + "/usage"))
+    if (representative) {
+      try { this.migrateTraySelection(representative.id) }
+      catch { pending.failures.push({ code: "PLUGIN_TRAY_MIGRATION_FAILED", message: "菜单栏额度选项更新未完成，请在 Magpie 设置中重新选择 NovaFlow 分组" }) }
+    }
     this.accounts.setNativeState(pending)
     return pending
+  }
+
+  migrateTraySelection(id) {
+    const path = join(this.directory, "settings.json")
+    const before = readConfig(path)
+    const selected = Array.isArray(before.value.trayUsages) ? before.value.trayUsages
+      : typeof before.value.trayUsage === "string" && before.value.trayUsage ? [before.value.trayUsage] : []
+    const legacy = value => typeof value === "string" && (value === "novaflow" || value.startsWith("novaflow|"))
+    if (!selected.some(legacy)) return
+    const trayUsages = [...new Set(selected.map(value => legacy(value) ? id : value))]
+    writeConfig(path, before, { ...before.value, trayUsages, trayUsage: trayUsages[0] || "" })
+  }
+
+  async retireLegacyEntry() {
+    const release = await this.lock()
+    try {
+      const before = readConfig(this.path)
+      const providers = (before.value.providers || []).filter(item => item.id !== "novaflow"
+        || CONNECTION_FIELDS.some(field => item[field]) || item.keys?.length)
+      if (providers.length !== (before.value.providers || []).length) {
+        writeConfig(this.path, before, { ...before.value, providers })
+        return true
+      }
+      return false
+    } finally { release() }
   }
 
   clear() { return this.reconcile({ clear: true }) }

@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process"
 import { access, chmod, constants as fsConstants, lstat, mkdir, open, readFile, readdir, realpath, rename, rm, stat, writeFile } from "node:fs/promises"
 import { homedir } from "node:os"
+import { fileURLToPath } from "node:url"
 import { delimiter, dirname, isAbsolute, join, relative, resolve, sep } from "node:path"
 import { PRODUCTION_ORIGIN } from "./config.mjs"
 import { skillDescription } from "./skill-metadata.mjs"
@@ -184,6 +185,22 @@ export class MagpieHostAdapter {
     if (!this.available) await this.initialize()
     if (!this.available) throw new Error("Magpie CLI is unavailable")
     await this.run(["provider", "refresh", id], { timeout: 45_000, signal })
+  }
+
+  async syncProviderIcon(id, signal) {
+    if (!/^novaflow-key-[a-f0-9]{20}$/.test(id)) throw new Error("Invalid managed provider identifier")
+    if (!this.available) await this.initialize()
+    if (!this.available) throw new Error("Magpie CLI is unavailable")
+    const asset = fileURLToPath(new URL("../page/icon.svg", import.meta.url))
+    await this.run(["provider", "icon", id, asset], { timeout: 15_000, signal })
+    const config = JSON.parse(await readFile(join(this.directory, "providers.json"), "utf8"))
+    const icon = config.providers?.find(item => item.id === id)?.icon
+    if (!/^file:[a-f0-9]{16}\.svg$/.test(icon || "")) throw new Error("Magpie did not register the provider icon")
+    const path = join(this.directory, "icons", icon.slice(5))
+    const info = await lstat(path)
+    if (!info.isFile() || info.isSymbolicLink() || info.size > (1 << 20)) throw new Error("Magpie provider icon is unavailable")
+    if (!(await readFile(path)).equals(await readFile(asset))) throw new Error("Magpie provider icon verification failed")
+    return icon
   }
 
   providerCacheDirectory() {

@@ -31,7 +31,7 @@ export class ManualInitialization {
       status: needsImageCheck ? "partial_failure" : marker.status === "running" && !this.pending ? "partial_failure" : marker.status === "wait_config" || !marker.status ? "pending" : marker.status,
       fields: Object.keys(fields).filter(key => fields[key].status === "success" && !(key === "imageGen" && needsImageCheck)),
       failures: Object.entries(fields).filter(([key, item]) => item.status !== "success" || (key === "imageGen" && needsImageCheck)).map(([key]) => key),
-      results: Object.entries(fields).map(([id, item]) => ({ id, status: id === "imageGen" && needsImageCheck ? "pending" : item.status, message: id === "imageGen" && needsImageCheck ? "旧版本未校验 Magpie 供应商状态，请点击重试失败项重新检查" : item.message || "" })),
+      results: Object.entries(fields).map(([id, item]) => ({ id, status: id === "imageGen" && needsImageCheck ? "pending" : item.status, message: id === "imageGen" && needsImageCheck ? "请点击初始化配置，重新确认生图模型" : item.message || "" })),
       updatedAt: marker.updatedAt || "",
       manual: true,
     }
@@ -59,7 +59,7 @@ export class ManualInitialization {
     } finally { await rm(temporary, { force: true }) }
   }
   async imageMCP() {
-    if (!this.host.available) throw new Error("Magpie CLI 不可用，请重试")
+    if (!this.host.available) throw new Error("暂时无法连接 Magpie，请重新打开插件页面后重试")
     const applied = (await readObject(join(this.directory, "applied.json"), true)).value
     const agents = []
     for (const [id, entry] of Object.entries(applied)) {
@@ -103,7 +103,7 @@ export class ManualInitialization {
       const catalog = await this.host.readProviderCatalog(item.id)
       if (catalog.models.some(model => model.id === "gpt-image-2" && model.draws === true)) return item.id + "/gpt-image-2"
     }
-    throw new Error("Magpie 尚未获取到可用的 NovaFlow gpt-image-2 生图模型，请先点击立即同步或在原生供应商中获取模型")
+    throw new Error("Magpie 尚未获取到可用的 NovaFlow gpt-image-2 生图模型，请先点击立即同步或在 Magpie 供应商页面获取模型")
   }
 
   async apply() {
