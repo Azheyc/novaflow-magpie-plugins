@@ -6,7 +6,12 @@ import { randomId } from "./state-store.mjs"
 import { ALIAS_RE } from "./host-adapter.mjs"
 
 const ROOT = fileURLToPath(new URL("../page/", import.meta.url))
-const MAGPIE_DESKTOP_ORIGIN = "wails://localhost"
+// Wails uses a custom scheme on macOS/Linux and an intercepted HTTP origin
+// in Windows WebView2. Keep these exact: *.localhost is not a trusted host.
+const MAGPIE_DESKTOP_ORIGINS = new Set([
+  "wails://localhost",
+  "http://wails.localhost",
+])
 const BODY_LIMIT = 1 << 20
 const STATIC = new Map([
   ["/", ["service.html", "text/html; charset=utf-8"]],
@@ -30,10 +35,9 @@ function securityHeaders(response, port) {
     `style-src ${serviceSource}`,
     `img-src ${serviceSource} data:`,
     `connect-src ${serviceSource}`,
-    // The desktop top-level ancestor uses a custom scheme. CSP's wildcard
-    // does not include wails://, so it must be named explicitly. The page
-    // replaces its sandboxed frame; its ancestor is the Magpie window.
-    "frame-ancestors 'self' wails://localhost http://127.0.0.1:* http://localhost:*",
+    // The page replaces its sandboxed frame; its ancestor is the Magpie
+    // window. Name both desktop origins, including Windows WebView2.
+    `frame-ancestors 'self' ${[...MAGPIE_DESKTOP_ORIGINS].join(" ")} ${serviceSource}`,
     "base-uri 'none'",
     "form-action 'self'",
   ].join("; "))
@@ -75,7 +79,7 @@ function allowedOrigin(request, port) {
   const origin = request.headers.origin
   if (!origin) return true
   if (origin === "null") return true
-  if (origin === MAGPIE_DESKTOP_ORIGIN) return true
+  if (MAGPIE_DESKTOP_ORIGINS.has(origin)) return true
   return origin === `http://127.0.0.1:${port}` || origin === `http://localhost:${port}`
 }
 
@@ -134,7 +138,7 @@ export function createPageServer({
     // Granting Origin:null access to HTML would let ANY website's sandbox
     // fetch the embedded command token. Frame navigation and classic static
     // scripts/styles do not need that grant.
-    if (url.pathname.startsWith("/api/") && (request.headers.origin === "null" || request.headers.origin === MAGPIE_DESKTOP_ORIGIN)) {
+    if (url.pathname.startsWith("/api/") && (request.headers.origin === "null" || MAGPIE_DESKTOP_ORIGINS.has(request.headers.origin))) {
       response.setHeader("access-control-allow-origin", request.headers.origin)
       response.setHeader("vary", "Origin")
       if (request.method === "OPTIONS") {

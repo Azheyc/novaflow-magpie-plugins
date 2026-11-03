@@ -1,5 +1,5 @@
 export const PLUGIN_ID = "novaflow"
-export const PLUGIN_VERSION = "1.6.1"
+export const PLUGIN_VERSION = "1.6.2"
 export const PRODUCTION_ORIGIN = "https://www.ycnovaflow.vip"
 export const PRODUCTION_ORIGIN_ALIASES = Object.freeze([
   PRODUCTION_ORIGIN,

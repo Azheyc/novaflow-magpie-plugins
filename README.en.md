@@ -89,6 +89,8 @@ Connection keys and model API keys stay in protected local files under Magpie's 
 
 ## Troubleshooting
 
+**Windows plugin page says “127.0.0.1 refused to connect”?** Update the plugin to 1.6.2 or later. Earlier frame policies omitted the Windows Magpie window origin and could be blocked by WebView2. Extract the new production package, update the plugin in Magpie and restart; enable only one NovaFlow copy at a time. If it still fails, open `http://127.0.0.1:3488/` in a browser: if it opens, the local service is running; otherwise, check that the plugin is enabled and inspect Magpie's plugin startup errors. The plugin provides this service; no NovaFlow backend installation is needed.
+
 **No models?** Check the connection status in the plugin page, then check the generated **NovaFlow · group name** providers, enable them and sync with a valid connection key. Enterprise administrators must configure model groups and access.
 
 **Missing local skill?** Import it into Magpie Library first, then refresh the share list. An unregistered folder on disk is not listed.
