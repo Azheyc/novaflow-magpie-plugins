@@ -562,15 +562,21 @@ function renderLogin() {
   input.placeholder = "粘贴以 nfpc_ 开头的连接密钥"
   input.dataset.lock = "true"
   label.htmlFor = input.id
-  const submit = button(busy ? "正在连接…" : "连接 NovaFlow", null, "primary")
-  submit.type = "submit"
-  form.addEventListener("submit", async event => {
-    event.preventDefault()
+  // Magpie's allow-scripts sandbox blocks native form submission before its
+  // submit event. Send typed commands from explicit click/keyboard handlers.
+  const connect = async () => {
     if (busy || resourceLoading || !form.reportValidity()) return
     const key = input.value.trim()
     input.value = ""
     loginError = ""
     await run("login", { connection_key: key }, "账户已连接，正在同步各分组模型", undefined, error => { loginError = error.message })
+  }
+  const submit = button(busy ? "正在连接…" : "连接 NovaFlow", connect, "primary")
+  form.addEventListener("submit", event => event.preventDefault())
+  input.addEventListener("keydown", event => {
+    if (event.key !== "Enter" || event.isComposing) return
+    event.preventDefault()
+    if (!event.repeat) return connect()
   })
   form.append(label, input)
   if (loginError) {

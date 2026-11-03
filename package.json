@@ -1,6 +1,6 @@
 {
   "name": "novaflow-magpie-plugins",
-  "version": "1.6.2",
+  "version": "1.6.3",
   "description": "NovaFlow account, native provider synchronization and company skills for Magpie",
   "type": "module",
   "main": "./index.mjs",
